@@ -76,5 +76,14 @@ router.get(
     ),
     UserController.getStudents
 );
+router.delete(
+  '/remove-assigned/:mentorId/:studentId',
+  auth(
+      USER_ROLES.ADMIN,
+      USER_ROLES.SUPER_ADMIN,
+      USER_ROLES.MENTOR
+  ),
+  UserController.removeAssignedStudent
+);
 
 export const UserRoutes = router;

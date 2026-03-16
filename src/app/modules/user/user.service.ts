@@ -13,6 +13,7 @@ import { sendTwilioOTP } from "../../../helpers/twillo";
 import { formatPhoneNumber } from "../../../helpers/formatedPhoneNumber";
 import { AppError } from "../../../errors/error.app";
 import path from 'path';
+import { Types } from "mongoose";
 
 const createAdminToDB = async (payload: any): Promise<IUser> => {
 
@@ -194,6 +195,27 @@ const getStudentsFromDB = async (mentorId: string) => {
   
   return result;
 };
+const removeAssignedFromDB = async (
+  mentorId: string,
+  studentId: string
+) => {
+
+  const mentor = await User.findById(mentorId);
+
+  if (!mentor) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Mentor not found");
+  }
+
+  const updatedMentor = await User.findByIdAndUpdate(
+    mentorId,
+    {
+      $pull: { assignedStudents: new Types.ObjectId(studentId) },
+    },
+    { new: true }
+  );
+
+  return updatedMentor;
+};
 
 export const UserService = {
   createUserToDB,
@@ -202,5 +224,6 @@ export const UserService = {
   updateLocationToDB,
   getProfileFromDB,
   updateprofileByIdToDB,
-  getStudentsFromDB
+  getStudentsFromDB,
+  removeAssignedFromDB
 };

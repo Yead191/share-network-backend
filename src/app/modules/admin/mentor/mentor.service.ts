@@ -11,6 +11,7 @@ import { query } from 'express';
 import { assign } from 'nodemailer/lib/shared';
 import { socketHelper } from '../../../../helpers/socketHelper';
 import { sendNotifications } from '../../../../helpers/notificationsHelper';
+import { Types } from 'mongoose';
 
 const bulkImportMentors = async (fileBuffer: Buffer) => {
     const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
@@ -92,9 +93,38 @@ const bulkImportMentors = async (fileBuffer: Buffer) => {
     };
 };
 
+// const getAllMentorsFromDB = async (query: any) => {
+//   const qb = new QueryBuilder(User.find({ role: USER_ROLES.MENTOR }), query)
+//     .search(['firstName', 'lastName', 'email','userGroup'])
+//     .filter()
+//     .sort()
+//     .paginate();
+
+//   const mentors = await qb.queryModel
+//     .populate('userGroup')
+//     .populate('assignedStudents', 'firstName lastName email profile contact location');
+
+//   const pagination = await qb.getPaginationInfo();
+
+//   return { mentors, pagination };
+// };
 const getAllMentorsFromDB = async (query: any) => {
-  const qb = new QueryBuilder(User.find({ role: USER_ROLES.MENTOR }), query)
-    .search(['firstName', 'lastName', 'email','userGroup'])
+  const { userGroup, ...restQuery } = query;
+
+  let filter: any = {
+    role: USER_ROLES.MENTOR,
+  };
+
+  if (userGroup) {
+    if (Types.ObjectId.isValid(userGroup)) {
+      filter.userGroup = new Types.ObjectId(userGroup);
+    } else {
+      return { mentors: [], pagination: null };
+    }
+  }
+
+  const qb = new QueryBuilder(User.find(filter), restQuery)
+    .search(['firstName', 'lastName', 'email'])
     .filter()
     .sort()
     .paginate();
@@ -107,7 +137,6 @@ const getAllMentorsFromDB = async (query: any) => {
 
   return { mentors, pagination };
 };
-
 const getMentorById = async (id: string) => {
     const mentor = await User.findById(id)
     .populate('userGroup')

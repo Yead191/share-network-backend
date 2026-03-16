@@ -111,6 +111,21 @@ const getStudents = catchAsync(async (req: Request, res: Response, next: NextFun
     });
 });
 
+const removeAssignedStudent = catchAsync(async (req: Request, res: Response) => {
+  const { mentorId, studentId } = req.params;
+
+  const result = await UserService.removeAssignedFromDB(
+    mentorId,
+    studentId
+  );
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Assigned removed successfully",
+    data: result,
+  });
+});
 export const UserController = {
     createUser,
     createAdmin,
@@ -118,5 +133,6 @@ export const UserController = {
     updateProfile,
     updateLocation,
     updateprofileById,
-    getStudents
+    getStudents,
+    removeAssignedStudent
 };

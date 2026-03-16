@@ -8,6 +8,7 @@ import { IStudentReview } from '../students/management/students.interface';
 import { StudentProfile } from '../students/management/students.model';
 import { query } from 'winston';
 import QueryBuilder from '../../../../shared/apiFeature';
+import { Types } from 'mongoose';
 
 const bulkImportTeachers = async (fileBuffer: Buffer) => {
     const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
@@ -88,12 +89,43 @@ const bulkImportTeachers = async (fileBuffer: Buffer) => {
     };
 };
 
+// const getAllTeachersFromDB = async (query: Record<string, any>) => {
+//     const teachers = await new QueryBuilder(User.find({ role: USER_ROLES.TEACHER }), query).search(['name', 'email']).filter().sort().paginate().queryModel
+//     .populate('userGroup')
+//     .populate('assignedStudents')
+//     .lean();
+//     return teachers;
+// };
+
 const getAllTeachersFromDB = async (query: Record<string, any>) => {
-    const teachers = await new QueryBuilder(User.find({ role: USER_ROLES.TEACHER }), query).search(['name', 'email']).filter().sort().paginate().queryModel
-    .populate('userGroup')
-    .populate('assignedStudents')
+  const { userGroup, ...restQuery } = query;
+
+  let filter: any = {
+    role: USER_ROLES.TEACHER,
+  };
+
+  if (userGroup) {
+    if (Types.ObjectId.isValid(userGroup)) {
+      filter.userGroup = new Types.ObjectId(userGroup);
+    } else {
+      return [];
+    }
+  }
+
+  const teachers = await new QueryBuilder(
+    User.find(filter),
+    restQuery
+  )
+    .search(["firstName", "email"])
+    .filter()
+    .sort()
+    .paginate()
+    .queryModel
+    .populate("userGroup")
+    .populate("assignedStudents")
     .lean();
-    return teachers;
+
+  return teachers;
 };
 
 const getTeacherById = async (id: string) => {
