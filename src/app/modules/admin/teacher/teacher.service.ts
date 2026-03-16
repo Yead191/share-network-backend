@@ -122,6 +122,7 @@ const getAllTeachersFromDB = async (query: Record<string, any>) => {
     .paginate()
     .queryModel
     .populate("userGroup")
+    .populate("userGroupTrack")
     .populate("assignedStudents")
     .lean();
 
