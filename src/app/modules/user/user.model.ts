@@ -291,6 +291,10 @@ const userSchema = new Schema<IUser, UserModal>(
 
 userSchema.index({ location: "2dsphere" });
 
+userSchema.statics.isExistUserById = async function (id: string) {
+    return await this.findById(id);
+};
+
 userSchema.statics.isExistUserByEmail = async (email: string) => {
   const isExist = await User.findOne({ email });
   return isExist;

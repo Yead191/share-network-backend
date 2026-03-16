@@ -131,7 +131,8 @@ const getAllMentorsFromDB = async (query: any) => {
 
   const mentors = await qb.queryModel
     .populate('userGroup')
-    .populate('assignedStudents', 'firstName lastName email profile contact location');
+    .populate('assignedStudents', 'firstName lastName email profile contact location')
+    .populate('userGroupTrack', 'name');
 
   const pagination = await qb.getPaginationInfo();
 
