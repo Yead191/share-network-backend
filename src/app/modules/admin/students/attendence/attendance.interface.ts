@@ -10,7 +10,7 @@ export type IStudentAttendanceDetail = {
 
 export interface IClassAttendance extends Document {
     date: Date;                
-    classId: Types.ObjectId; 
+    groupId: Types.ObjectId; 
     takenBy: Types.ObjectId;  
     records: IStudentAttendanceDetail[]; 
     

@@ -5,22 +5,31 @@ import ApiError from "../../../../../errors/ApiError";
 import { StatusCodes } from "http-status-codes";
 import { query } from 'express';
 import QueryBuilder from "../../../../../shared/apiFeature";
-const getDayRange = (dateStr?: string | Date) => {
-    const targetDate = dateStr ? new Date(dateStr) : new Date(); // today if not passed
+import { group } from "console";
+// const getDayRange = (dateStr?: string | Date) => {
+//     const targetDate = dateStr ? new Date(dateStr) : new Date(); // today if not passed
 
-    if (isNaN(targetDate.getTime())) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid Date Format. Use YYYY-MM-DD");
-    }
+//     if (isNaN(targetDate.getTime())) {
+//         throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid Date Format. Use YYYY-MM-DD");
+//     }
 
-    const start = new Date(targetDate);
-    start.setUTCHours(0, 0, 0, 0);
+//     const start = new Date(targetDate);
+//     start.setUTCHours(0, 0, 0, 0);
 
-    const end = new Date(targetDate);
-    end.setUTCHours(23, 59, 59, 999);
+//     const end = new Date(targetDate);
+//     end.setUTCHours(23, 59, 59, 999);
 
+//     return { start, end };
+// };
+
+const getDayRange = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    
+    const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    const end   = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+    
     return { start, end };
 };
-
 
 const saveBatchAttendanceInDB = async (payload: IClassAttendance) => {
     const targetDate = new Date(payload.date);
@@ -31,13 +40,13 @@ const saveBatchAttendanceInDB = async (payload: IClassAttendance) => {
 
     const result = await ClassAttendance.findOneAndUpdate(
         { 
-            classId: payload.classId, 
+            groupId: payload.groupId, 
             date: { $gte: start, $lte: end } 
         },
         {
             $set: {
                 date: start,
-                classId: payload.classId,
+                groupId: payload.groupId,
                 takenBy: payload.takenBy,
                 records: payload.records
             }
@@ -54,22 +63,20 @@ const saveBatchAttendanceInDB = async (payload: IClassAttendance) => {
 
 
 const updateSingleStudentStatus = async (
-    dateStr: string, 
-    classId: string, 
-    studentId: string, 
-    status: string, 
+    dateStr: string,
+    classId: string,
+    studentId: string,
+    status: string,
     note: string = ""
 ) => {
     const { start, end } = getDayRange(dateStr);
-
-    // Step A: Find the sheet
-    const attendanceRecord = await ClassAttendance.findOne({ 
-        classId: classId,
+    const attendanceRecord = await ClassAttendance.findOne({
+        groupId: classId,
         date: { $gte: start, $lte: end }
     });
 
     if (!attendanceRecord) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Attendance sheet not found. Please click 'Save Attendance' to create the sheet first.");
+        throw new ApiError(StatusCodes.NOT_FOUND, "Attendance sheet not found...");
     }
 
     const studentExists = attendanceRecord.records.find(
@@ -77,12 +84,11 @@ const updateSingleStudentStatus = async (
     );
 
     let result;
-
     if (studentExists) {
         result = await ClassAttendance.findOneAndUpdate(
-            { 
-                _id: attendanceRecord._id, 
-                "records.studentId": studentId 
+            {
+                _id: attendanceRecord._id,
+                "records.studentId": studentId
             },
             {
                 $set: {
@@ -96,13 +102,7 @@ const updateSingleStudentStatus = async (
         result = await ClassAttendance.findByIdAndUpdate(
             attendanceRecord._id,
             {
-                $push: {
-                    records: {
-                        studentId,
-                        status,
-                        note
-                    }
-                }
+                $push: { records: { studentId, status, note } }
             },
             { new: true }
         );
@@ -111,24 +111,25 @@ const updateSingleStudentStatus = async (
     return result;
 };
 
+const getAttendanceByDateAndClass = async (dateStr?: string, groupId?: string) => {
+    const query: any = {};
 
-const getAttendanceByDateAndClass = async (dateStr?: string, classId?: string) => {
-    const { start, end } = getDayRange(dateStr);
+    if (dateStr) {
+        const { start, end } = getDayRange(dateStr);
+        query.date = { $gte: start, $lte: end };
+    }
 
-
-    const query: any = {
-        date: { $gte: start, $lte: end }
-    };
-    if (classId) query.classId = classId;
-
+    if (groupId) {
+        query.groupId = groupId;
+    }
 
     const result = await ClassAttendance.find(query)
         .populate({
             path: 'records.studentId',
-            select: 'firstName lastName rollNumber profile email' 
+            select: 'firstName lastName rollNumber profile email'
         })
         .populate({
-            path: 'classId',
+            path: 'groupId',
             select: 'name'
         })
         .populate({
@@ -140,10 +141,10 @@ const getAttendanceByDateAndClass = async (dateStr?: string, classId?: string) =
     return result;
 };
 
-const getStudentAttendanceStats = async (classId: string, query: Record<string, any>) => {
+const getStudentAttendanceStats = async (groupId: string, query: Record<string, any>) => {
     
     const pipeline: any[] = [
-        { $match: { classId: new Types.ObjectId(classId) } },
+        { $match: { groupId: new Types.ObjectId(groupId) } },
         { $unwind: "$records" },
         { 
             $group: {
@@ -273,7 +274,7 @@ const getRecentAttendance = async (days: number = 3) => {
     const result = await ClassAttendance.find({
         date: { $gte: startDate }
     })
-    .populate('classId', 'className') 
+    .populate('groupId', 'name') 
     .populate('takenBy', 'name email') 
     .populate('records.studentId', 'name rollNo') 
     .sort({ date: -1 }); 

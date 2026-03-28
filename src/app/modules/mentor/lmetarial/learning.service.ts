@@ -105,7 +105,7 @@ const getAllMentorResourcesFromDB = async (query?: Record<string, any>, userId?:
 
 const getFilteredResourcesFromDB = async (query?: Record<string, any>) => {
   const safeQuery = query || {};
-  const searchableFields = ['title', 'type', 'targetAudience'];
+  const searchableFields = ['title', 'type', 'targetAudience', 'targertGroup'];
 
   const qb = new QueryBuilder(LearningMaterial.find(), safeQuery)
     .search(searchableFields)
@@ -114,7 +114,7 @@ const getFilteredResourcesFromDB = async (query?: Record<string, any>) => {
     .paginate();
 
   const resources = await qb.queryModel
-    .populate('targertGroup') // fix typo
+    .populate('targertGroup') 
     .select('-createdBy')
     .exec();
 

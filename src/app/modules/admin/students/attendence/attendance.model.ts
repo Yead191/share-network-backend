@@ -6,9 +6,9 @@ const classAttendanceSchema = new Schema<IClassAttendance>({
         type: Date,
         required: true,
     },
-    classId: {
+    groupId: {
         type: Schema.Types.ObjectId,
-        ref: 'Class', 
+        ref: 'UserGroup',
         required: true
     },
     takenBy: {
@@ -34,6 +34,6 @@ const classAttendanceSchema = new Schema<IClassAttendance>({
     timestamps: true
 });
 
-classAttendanceSchema.index({ date: 1, classId: 1 }, { unique: true });
+classAttendanceSchema.index({ date: 1, groupId: 1 }, { unique: true });
 
 export const ClassAttendance = model<IClassAttendance>('ClassAttendance', classAttendanceSchema);

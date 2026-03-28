@@ -3,6 +3,7 @@ import catchAsync from '../../../../../shared/catchAsync';
 import sendResponse from '../../../../../shared/sendResponse';
 import { StatusCodes } from 'http-status-codes';
 import { AttendanceService } from './attendence.service';
+import { group } from 'console';
 
 
 // Save the whole list
@@ -21,11 +22,11 @@ const saveBatchAttendance = catchAsync(async (req: Request, res: Response) => {
 
 // Update one student (Patch)
 const updateStudentStatus = catchAsync(async (req: Request, res: Response) => {
-    const { date, classId, studentId, status, note } = req.body;
+    const { date, groupId, studentId, status, note } = req.body;
 
     const result = await AttendanceService.updateSingleStudentStatus(
         date, 
-        classId, 
+        groupId, 
         studentId, 
         status, 
         note
@@ -41,11 +42,11 @@ const updateStudentStatus = catchAsync(async (req: Request, res: Response) => {
 
 // Get View
 const getAttendance = catchAsync(async (req: Request, res: Response) => {
-    const { date, classId } = req.query;
+    const { date, groupId } = req.query;
 
     const result = await AttendanceService.getAttendanceByDateAndClass(
         date as string, 
-        classId as string
+        groupId as string
     );
 
     sendResponse(res, {
@@ -57,9 +58,9 @@ const getAttendance = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAttendanceStats = catchAsync(async (req: Request, res: Response) => {
-    const { classId } = req.params;
+    const { groupId } = req.params;
 
-    const result = await AttendanceService.getStudentAttendanceStats(classId, req.query);
+    const result = await AttendanceService.getStudentAttendanceStats(groupId, req.query);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,

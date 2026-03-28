@@ -33,7 +33,7 @@ router.route("/")
         AttendanceController.getAttendance
     );
 router.get(
-    "/stats/:classId",
+    "/stats/:groupId",
     // auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MENTOR),
     AttendanceController.getAttendanceStats
 );
