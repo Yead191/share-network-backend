@@ -35,14 +35,14 @@ const assignmentSchema = new Schema<IAssignment, AssignmentModel>(
       {
         type: Schema.Types.ObjectId,
         ref: 'UserGroup',
-        required: true,
+        required: false,
       },
     ],
 
     userGroupTrack: {
       type: Schema.Types.ObjectId,
       ref: 'UserGroupTrack',
-      required: true,
+      required: false,
     },
 
     dueDate: {

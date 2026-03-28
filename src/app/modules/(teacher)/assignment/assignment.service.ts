@@ -7,6 +7,7 @@ import { UserGroupTrack } from '../../user-group/user-group-track/user-group-tra
 import { UserGroup } from '../../user-group/user-group.model';
 import { RecentActivity } from '../recentActivities/recentActivity.model';
 import { AssignmentsSub } from '../../students/assignments/assignmentsSub.model';
+import mongoose from 'mongoose';
 
 const createAssignmentToDB = async (payload: IAssignment) => {
 
@@ -41,37 +42,50 @@ const createAssignmentToDB = async (payload: IAssignment) => {
 };
 
 const getAllAssignmentsFromDB = async (query: Record<string, any>) => {
-  const result = new QueryBuilder(
-    Assignment.find()
-      .populate('userGroup')
-      .populate('userGroupTrack')
-      .populate({
-        path: 'submitAssignment',
-        populate: [
-          {
-            path: 'assignmentId', 
-            model: 'Assignment',
-            select: 'title description' 
-          },
-          {
-            path: 'studentId',   
-            model: 'User',
-            select: 'name email mobilenumber role'       
-          }
-        ]
-      }),
-    query
-  )
-    .search(['title', 'description'])
-    .filter()
-    .sort()
-    .paginate();
+    const searchableFields = ['title', 'type', 'userGroupTrack', 'userGroup'];
 
-  const assignments = await result.queryModel;
-  const pagination = await result.getPaginationInfo();
-  return { assignments, pagination };
+    const preFilter: Record<string, any> = {};
+
+    if (query.userGroup) {
+        preFilter.userGroup = new mongoose.Types.ObjectId(query.userGroup as string);
+        delete query.userGroup; 
+    }
+
+    if (query.userGroupTrack) {
+        preFilter.userGroupTrack = new mongoose.Types.ObjectId(query.userGroupTrack as string);
+        delete query.userGroupTrack;
+    }
+
+    const result = new QueryBuilder(
+        Assignment.find(preFilter) 
+            .populate('userGroup')
+            .populate('userGroupTrack')
+            .populate({
+                path: 'submitAssignment',
+                populate: [
+                    {
+                        path: 'assignmentId',
+                        model: 'Assignment',
+                        select: 'title description'
+                    },
+                    {
+                        path: 'studentId',
+                        model: 'User',
+                        select: 'name email mobilenumber role'
+                    }
+                ]
+            }),
+        query
+    )
+        .search(searchableFields)
+        .filter()
+        .sort()
+        .paginate();
+
+    const assignments = await result.queryModel;
+    const pagination = await result.getPaginationInfo();
+    return { assignments, pagination };
 };
-
 const getAssignmentByIdFromDB = async (id: string) => {
   const result = await Assignment.findById(id).populate('userGroup').populate('userGroupTrack');
   if (!result) {
