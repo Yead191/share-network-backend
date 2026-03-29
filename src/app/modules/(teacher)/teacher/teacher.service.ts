@@ -10,11 +10,18 @@ import { Assignment } from "../assignment/assignment.model";
 import { Class } from "../class/class.model";
 import ApiError from "../../../../errors/ApiError";
 import { StatusCodes } from "http-status-codes";
+import { Types } from "mongoose";
 
 const getAllMyStudent = async ( user: JwtPayload, query: Record<string, any>) => {
   const queryData = { ...query };
   const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
   delete queryData.searchTerm;
+
+  const requestedUserGroup = typeof queryData.userGroup === 'string' ? queryData.userGroup.trim() : '';
+  const requestedUserGroupTrack = typeof queryData.userGroupTrack === 'string' ? queryData.userGroupTrack.trim() : '';
+
+  delete queryData.userGroup;
+  delete queryData.userGroupTrack;
 
   const teacher = (await User.findById(user.id, "userGroup userGroupTrack").lean().populate("userGroup")) as IUser & {
     userGroup: IUserGroup[] | null;
@@ -28,11 +35,53 @@ const getAllMyStudent = async ( user: JwtPayload, query: Record<string, any>) =>
   const groupIds = teacher.userGroup?.map((group: { _id: any }) => group._id) || [];
   const trackId = teacher.userGroupTrack;
 
+  const page = Math.max(Number(queryData.page) || 1, 1);
+  const parsedLimit = Number(queryData.limit);
+  const limit = queryData.limit !== undefined && parsedLimit === 0 ? 0 : parsedLimit || 10;
+
+  if (requestedUserGroup && !Types.ObjectId.isValid(requestedUserGroup)) {
+    return {
+      pagination: { total: 0, totalPage: 1, page, limit },
+      student: [],
+    };
+  }
+
+  if (requestedUserGroupTrack && !Types.ObjectId.isValid(requestedUserGroupTrack)) {
+    return {
+      pagination: { total: 0, totalPage: 1, page, limit },
+      student: [],
+    };
+  }
+
+  if (requestedUserGroup && !groupIds.some((groupId: any) => groupId?.toString() === requestedUserGroup)) {
+    return {
+      pagination: { total: 0, totalPage: 1, page, limit },
+      student: [],
+    };
+  }
+
+  if (requestedUserGroupTrack && trackId?.toString() !== requestedUserGroupTrack) {
+    return {
+      pagination: { total: 0, totalPage: 1, page, limit },
+      student: [],
+    };
+  }
+
+  const studentQuery: Record<string, any> = {
+    role: USER_ROLES.STUDENT,
+    $or: [{ userGroup: { $in: groupIds } }, { userGroupTrack: trackId }],
+  };
+
+  if (requestedUserGroup) {
+    studentQuery.userGroup = new Types.ObjectId(requestedUserGroup);
+  }
+
+  if (requestedUserGroupTrack) {
+    studentQuery.userGroupTrack = new Types.ObjectId(requestedUserGroupTrack);
+  }
+
   const getAllStudent = new QueryBuilder(
-    User.find({
-      role: USER_ROLES.STUDENT,
-      $or: [{ userGroup: { $in: groupIds } }, { userGroupTrack: trackId }],
-    }),queryData)
+    User.find(studentQuery),queryData)
     .filter()
 
     .paginate()
