@@ -3,11 +3,17 @@ import QueryBuilder from "../../../../shared/apiFeature";
 import { User } from "../../user/user.model";
 import { IUser } from "../../user/user.interface";
 import { IUserGroup } from "../../user-group/user-group.interface";
+import { UserGroup } from "../../user-group/user-group.model";
+import { UserGroupTrack } from "../../user-group/user-group-track/user-group-track.model";
 import { USER_ROLES } from "../../../../enums/user";
 import { Assignment } from "../assignment/assignment.model";
 import { Class } from "../class/class.model";
 
 const getAllMyStudent = async ( user: JwtPayload, query: Record<string, any>) => {
+  const queryData = { ...query };
+  const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
+  delete queryData.searchTerm;
+
   const teacher = (await User.findById(user.id, "userGroup userGroupTrack").lean().populate("userGroup")) as IUser & {
     userGroup: IUserGroup[] | null;
     userGroupTrack: any;
@@ -20,10 +26,39 @@ const getAllMyStudent = async ( user: JwtPayload, query: Record<string, any>) =>
     User.find({
       role: USER_ROLES.STUDENT,
       $or: [{ userGroup: { $in: groupIds } }, { userGroupTrack: trackId }],
-    }),query)
+    }),queryData)
     .filter()
-    .search(["name", "email"])
+
     .paginate()
+
+  if (searchTerm) {
+    const searchConditions: Record<string, any>[] = [
+      { firstName: { $regex: searchTerm, $options: 'i' } },
+      { lastName: { $regex: searchTerm, $options: 'i' } },
+      { email: { $regex: searchTerm, $options: 'i' } },
+    ];
+
+    const [matchedGroups, matchedTracks] = await Promise.all([
+      UserGroup.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
+      UserGroupTrack.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
+    ]);
+
+    const matchedGroupIds = matchedGroups.map((group) => group._id);
+    const matchedTrackIds = matchedTracks.map((track) => track._id);
+
+    if (matchedGroupIds.length) {
+      searchConditions.push({ userGroup: { $in: matchedGroupIds } });
+    }
+
+    if (matchedTrackIds.length) {
+      searchConditions.push({ userGroupTrack: { $in: matchedTrackIds } });
+    }
+
+    const existingQuery = getAllStudent.queryModel.getQuery();
+    getAllStudent.queryModel = getAllStudent.queryModel.find({
+      $and: [existingQuery, { $or: searchConditions }],
+    });
+  }
 
   const student = await getAllStudent.queryModel
     .populate({ path: "userGroup", select: "name" })
