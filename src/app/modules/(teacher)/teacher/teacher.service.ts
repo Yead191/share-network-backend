@@ -8,6 +8,8 @@ import { UserGroupTrack } from "../../user-group/user-group-track/user-group-tra
 import { USER_ROLES } from "../../../../enums/user";
 import { Assignment } from "../assignment/assignment.model";
 import { Class } from "../class/class.model";
+import ApiError from "../../../../errors/ApiError";
+import { StatusCodes } from "http-status-codes";
 
 const getAllMyStudent = async ( user: JwtPayload, query: Record<string, any>) => {
   const queryData = { ...query };
@@ -18,6 +20,10 @@ const getAllMyStudent = async ( user: JwtPayload, query: Record<string, any>) =>
     userGroup: IUserGroup[] | null;
     userGroupTrack: any;
   };
+
+  if (!teacher) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Teacher not found");
+  }
   
   const groupIds = teacher.userGroup?.map((group: { _id: any }) => group._id) || [];
   const trackId = teacher.userGroupTrack;
@@ -76,6 +82,11 @@ const getOverview = async (user: JwtPayload) => {
     userGroup: IUserGroup[] | null;
     userGroupTrack: any;
   };
+
+  if (!teacher) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Teacher not found");
+  }
+
   const groupIds = teacher.userGroup?.map((group: { _id: any }) => group._id) || [];
   const trackId = teacher.userGroupTrack;
 
