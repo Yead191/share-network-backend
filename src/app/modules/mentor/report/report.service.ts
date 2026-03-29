@@ -2,8 +2,8 @@ import { IWeeklyReport } from "./report.interface";
 import { WeeklyReport } from './report.model';
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../../../errors/ApiError";
-import { query } from "winston";
 import QueryBuilder from "../../../../shared/apiFeature";
+import { User } from "../../user/user.model";
 const createWeeklyReport = async (payload: IWeeklyReport): Promise<any> => {
     const report = await WeeklyReport.create(payload);
     return report;
@@ -19,20 +19,43 @@ const getStudentReportsFromDB = async (studentId: string) => {
 };
 
 const getAllStudentReportsFromDB = async (query: Record<string, any>) => {
-    const result = new QueryBuilder(WeeklyReport.find(), query)
-      .search([
-        'achievedHardOutcomes',
-        'softSkillImprovements',
-        'comments',
-        'goalSheet',
-        'objectives',
-        'studentId.firstName',
-        'studentId.lastName',
-        'studentId.email',
-      ])
-      .filter()
-      .sort()
-      .paginate();
+        const queryData = { ...query };
+        const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
+
+        delete queryData.searchTerm;
+
+        const result = new QueryBuilder(WeeklyReport.find(), queryData)
+            .filter();
+
+        if (searchTerm) {
+            const reportSearchConditions: Record<string, any>[] = [
+                { achievedHardOutcomes: { $regex: searchTerm, $options: 'i' } },
+                { softSkillImprovements: { $regex: searchTerm, $options: 'i' } },
+                { comments: { $regex: searchTerm, $options: 'i' } },
+                { objectives: { $regex: searchTerm, $options: 'i' } },
+                { 'goalSheet.skillName': { $regex: searchTerm, $options: 'i' } },
+            ];
+
+            const matchedStudents = await User.find({
+                $or: [
+                    { firstName: { $regex: searchTerm, $options: 'i' } },
+                    { lastName: { $regex: searchTerm, $options: 'i' } },
+                    { email: { $regex: searchTerm, $options: 'i' } },
+                ],
+            }).select('_id');
+
+            const matchedStudentIds = matchedStudents.map((student) => student._id);
+            if (matchedStudentIds.length) {
+                reportSearchConditions.push({ studentId: { $in: matchedStudentIds } });
+            }
+
+            const existingQuery = result.queryModel.getQuery();
+            result.queryModel = result.queryModel.find({
+                $and: [existingQuery, { $or: reportSearchConditions }],
+            });
+        }
+
+        result.sort().paginate();
 
     const reports = await result.queryModel
       .populate('studentId')
