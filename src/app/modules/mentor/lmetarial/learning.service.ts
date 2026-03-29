@@ -2,29 +2,44 @@ import { StatusCodes } from "http-status-codes";
 import ApiError from "../../../../errors/ApiError";
 import { ILearningMaterial } from "./learning.interface";
 import { LearningMaterial } from "./learning.model";
-import { query } from 'express';
 import QueryBuilder from "../../../../shared/apiFeature";
 import { User } from "../../user/user.model";
-import path from 'path';
 import { sendNotifications } from "../../../../helpers/notificationsHelper";
 import { socketHelper } from "../../../../helpers/socketHelper";
 
 
 const createResourceFromDB = async (payload: ILearningMaterial) => {
     const resource  = await LearningMaterial.create(payload);
-    const notificationData = {
-        text: `new resource added ${resource.title}.`,
-        receiver: resource.targertGroup ? resource.targertGroup : resource.targeteAudience,
-        sender: resource.createdBy,
-        type: "STUDENT",
-        targetRole: resource.targertGroup ? "STUDENT" : resource.targeteAudience,
-    };
-  const io = (socketHelper as { getIO?: () => { emit: (event: string, data: unknown) => void } }).getIO?.();
-  if (io) {
-      io.emit("notification", notificationData);
-  }
-  sendNotifications(notificationData);
-  return resource;
+    const baseText = `new resource added ${resource.title}.`;
+
+    const receiverFilter = resource.targertGroup
+      ? { role: 'STUDENT', userGroup: resource.targertGroup }
+      : { role: resource.targeteAudience };
+
+    const receivers = await User.find(receiverFilter).select('_id').lean();
+
+    if (receivers.length) {
+      await Promise.all(
+        receivers.map((receiver) =>
+          sendNotifications({
+            text: baseText,
+            receiver: receiver._id,
+            type: resource.targeteAudience === 'MENTOR' ? 'MENTOR' : 'STUDENT',
+          })
+        )
+      );
+    }
+
+    const io = (socketHelper as { getIO?: () => { emit: (event: string, data: unknown) => void } }).getIO?.();
+    if (io) {
+      io.emit('notification', {
+        text: baseText,
+        receiverCount: receivers.length,
+        targetRole: resource.targertGroup ? 'STUDENT' : resource.targeteAudience,
+      });
+    }
+
+    return resource;
 }
 
 
