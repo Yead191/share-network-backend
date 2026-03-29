@@ -29,12 +29,12 @@ router.route("/:id")
         mentorWeeklyReport.getStudentReports
     )
     .patch(
-        auth(USER_ROLES.MENTOR),
+        auth(USER_ROLES.MENTOR, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
         validateRequest(ReportValidation.updateWeeklyReportZodSchema),
         mentorWeeklyReport.updateWeeklyReport
     )
     .delete(
-        auth(USER_ROLES.MENTOR),
+        auth(USER_ROLES.MENTOR, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
         mentorWeeklyReport.deleteWeeklyReport
     );
 

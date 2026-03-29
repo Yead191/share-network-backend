@@ -15,6 +15,7 @@ const learningMaterialSchema = new Schema<ILearningMaterial>({
     enum: Object.values(ResourceType),
     required: false,
     },
+    
     contentUrl: { type: String, required: false },
     pdf: { type: String, required: false },
     targertGroup: { type: Schema.Types.ObjectId, ref: 'UserGroup', required: false },
