@@ -3,9 +3,10 @@ import ApiError from "../../../../errors/ApiError";
 import QueryBuilder from "../../../../shared/apiFeature";
 import { IClass } from "./class.interface";
 import { Class } from "./class.model";
-import { User } from "../../user/user.model";
 import { Types } from "mongoose";
 import { RecentActivity } from "../recentActivities/recentActivity.model";
+import { UserGroup } from "../../user-group/user-group.model";
+import { UserGroupTrack } from "../../user-group/user-group-track/user-group-track.model";
 
 const createClassToDB = async (payload: IClass) => {
 
@@ -43,26 +44,77 @@ const createClassToDB = async (payload: IClass) => {
   return populated;
 };
 const getAllClassesFromDB = async (query: Record<string, any>) => {
-  let filterConditions: Record<string, any> = {};
+  const queryData = { ...query };
+  const filterConditions: Record<string, any> = {};
+  const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
 
-  if (query.userGroup) {
-    const userGroupIds = Array.isArray(query.userGroup)
-      ? query.userGroup
-      : [query.userGroup];
-    filterConditions['userGroup'] = { $in: userGroupIds };
+  const page = Math.max(Number(queryData.page) || 1, 1);
+  const parsedLimit = Number(queryData.limit);
+  const limit = queryData.limit !== undefined && parsedLimit === 0 ? 0 : parsedLimit || 10;
+
+  delete queryData.searchTerm;
+
+  if (queryData.userGroup) {
+    const userGroupValues = Array.isArray(queryData.userGroup)
+      ? queryData.userGroup
+      : String(queryData.userGroup).split(',').map((value) => value.trim()).filter(Boolean);
+
+    const validUserGroupIds = userGroupValues.filter((id) => Types.ObjectId.isValid(id));
+
+    if (!validUserGroupIds.length) {
+      return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
+    }
+
+    filterConditions.userGroup = { $in: validUserGroupIds.map((id) => new Types.ObjectId(id)) };
   }
 
-  if (query.userGroupTrack) {
-    filterConditions['userGroupTrack'] = query.userGroupTrack;
+  if (queryData.userGroupTrack) {
+    const userGroupTrackId = String(queryData.userGroupTrack).trim();
+    if (!Types.ObjectId.isValid(userGroupTrackId)) {
+      return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
+    }
+
+    filterConditions.userGroupTrack = new Types.ObjectId(userGroupTrackId);
   }
+
+  delete queryData.userGroup;
+  delete queryData.userGroupTrack;
 
   const baseQuery = Class.find(filterConditions);
 
-  const result = new QueryBuilder(baseQuery, query)
-    .search(['title', 'location', 'description'])
+  const result = new QueryBuilder(baseQuery, queryData)
     .filter()
     .sort()
     .paginate();
+
+  if (searchTerm) {
+    const searchConditions: Record<string, any>[] = [
+      { title: { $regex: searchTerm, $options: 'i' } },
+      { location: { $regex: searchTerm, $options: 'i' } },
+      { description: { $regex: searchTerm, $options: 'i' } },
+    ];
+
+    const [matchedGroups, matchedTracks] = await Promise.all([
+      UserGroup.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
+      UserGroupTrack.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
+    ]);
+
+    const matchedGroupIds = matchedGroups.map((group) => group._id);
+    const matchedTrackIds = matchedTracks.map((track) => track._id);
+
+    if (matchedGroupIds.length) {
+      searchConditions.push({ userGroup: { $in: matchedGroupIds } });
+    }
+
+    if (matchedTrackIds.length) {
+      searchConditions.push({ userGroupTrack: { $in: matchedTrackIds } });
+    }
+
+    const existingQuery = result.queryModel.getQuery();
+    result.queryModel = result.queryModel.find({
+      $and: [existingQuery, { $or: searchConditions }],
+    });
+  }
 
   const classes = await result.queryModel
     .populate({
