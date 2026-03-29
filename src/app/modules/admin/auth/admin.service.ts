@@ -7,6 +7,10 @@ import QueryBuilder from '../../../../shared/apiFeature';
 import { Event } from '../event/event.model';
 import { LearningMaterial } from '../../mentor/lmetarial/learning.model';
 import { Assignment } from '../../(teacher)/assignment/assignment.model';
+import { UserGroup } from '../../user-group/user-group.model';
+import { UserGroupTrack } from '../../user-group/user-group-track/user-group-track.model';
+import { Class } from '../../(teacher)/class/class.model';
+import { Types } from 'mongoose';
 
 const createAdminToDB = async (payload: IUser): Promise<IUser> => {
     payload.verified = true;
@@ -100,14 +104,109 @@ allActivities.sort((a, b) =>
     return allActivities;
 };
 const getAllCoordinatorFromDB = async (query: Record<string, any>) => {
+    const queryData = { ...query };
+    const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
+    const requestedUserGroup = queryData.userGroup;
+    const requestedUserGroupTrack = queryData.userGroupTrack;
+    const requestedClassId = queryData.classId;
+
+    const page = Math.max(Number(queryData.page) || 1, 1);
+    const parsedLimit = Number(queryData.limit);
+    const limit = queryData.limit !== undefined && parsedLimit === 0 ? 0 : parsedLimit || 10;
+
+    delete queryData.searchTerm;
+    delete queryData.userGroup;
+    delete queryData.userGroupTrack;
+    delete queryData.classId;
+
+    const baseConditions: Record<string, any> = { role: 'COORDINATOR' };
+
+    if (requestedUserGroup) {
+        const rawGroupIds = Array.isArray(requestedUserGroup)
+            ? requestedUserGroup
+            : String(requestedUserGroup).split(',').map((value) => value.trim()).filter(Boolean);
+
+        const validGroupIds = rawGroupIds.filter((id) => Types.ObjectId.isValid(id));
+        if (!validGroupIds.length) {
+            return { data: [], pagination: { total: 0, totalPage: 1, page, limit } };
+        }
+
+        baseConditions.userGroup = { $in: validGroupIds.map((id) => new Types.ObjectId(id)) };
+    }
+
+    if (requestedUserGroupTrack) {
+        const groupTrackId = String(requestedUserGroupTrack).trim();
+        if (!Types.ObjectId.isValid(groupTrackId)) {
+            return { data: [], pagination: { total: 0, totalPage: 1, page, limit } };
+        }
+
+        baseConditions.userGroupTrack = new Types.ObjectId(groupTrackId);
+    }
+
+    if (requestedClassId) {
+        const rawClassIds = Array.isArray(requestedClassId)
+            ? requestedClassId
+            : String(requestedClassId).split(',').map((value) => value.trim()).filter(Boolean);
+
+        const validClassIds = rawClassIds.filter((id) => Types.ObjectId.isValid(id));
+        if (!validClassIds.length) {
+            return { data: [], pagination: { total: 0, totalPage: 1, page, limit } };
+        }
+
+        baseConditions.classId = { $in: validClassIds.map((id) => new Types.ObjectId(id)) };
+    }
+
   const queryBuilder = new QueryBuilder(
-    User.find({ role: 'COORDINATOR' }),
-    query
+        User.find(baseConditions),
+        queryData
   )
-    // .search(['studentId', 'department'])
     .filter()
     .sort()
     .paginate();
+
+    if (searchTerm) {
+        const searchConditions: Record<string, any>[] = [
+            { firstName: { $regex: searchTerm, $options: 'i' } },
+            { lastName: { $regex: searchTerm, $options: 'i' } },
+            { email: { $regex: searchTerm, $options: 'i' } },
+            { contactNumber: { $regex: searchTerm, $options: 'i' } },
+            { mobileNumber: { $regex: searchTerm, $options: 'i' } },
+        ];
+
+        const [matchedGroups, matchedTracks, matchedClasses] = await Promise.all([
+            UserGroup.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
+            UserGroupTrack.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
+            Class.find({
+                $or: [
+                    { title: { $regex: searchTerm, $options: 'i' } },
+                    { description: { $regex: searchTerm, $options: 'i' } },
+                    { location: { $regex: searchTerm, $options: 'i' } },
+                ],
+            }).select('_id').lean(),
+        ]);
+
+        const matchedGroupIds = matchedGroups.map((group) => group._id);
+        const matchedTrackIds = matchedTracks.map((track) => track._id);
+        const matchedClassIds = matchedClasses.map((item) => item._id);
+
+        if (matchedGroupIds.length) {
+            searchConditions.push({ userGroup: { $in: matchedGroupIds } });
+        }
+
+        if (matchedTrackIds.length) {
+            searchConditions.push({ userGroupTrack: { $in: matchedTrackIds } });
+        }
+
+        if (matchedClassIds.length) {
+            searchConditions.push({ classId: { $in: matchedClassIds } });
+        }
+
+        const existingQuery = queryBuilder.queryModel.getQuery();
+        queryBuilder.queryModel = queryBuilder.queryModel.find({
+            $and: [existingQuery, { $or: searchConditions }],
+        });
+    }
+
 const result = await queryBuilder.queryModel
   .populate('mentorId', 'firstName lastName email profile contact location')
   .populate('assignedMentors', 'firstName lastName email profile contact location')
