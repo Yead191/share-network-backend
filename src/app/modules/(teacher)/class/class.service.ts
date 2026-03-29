@@ -74,6 +74,11 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
       select: 'name',
     })
     .populate({
+      path: 'studentId',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    })
+    .populate({
       path: 'teacher',
       select: 'firstName lastName email profile',
       model: 'User',

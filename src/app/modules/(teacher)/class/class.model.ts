@@ -9,11 +9,11 @@ const classSchema = new Schema<IClass, ClassModel>(
       ref: 'User',
       required: false,
     },
-    studentId:{
+    studentId:[{
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: false,
-    },
+    }],
     title: {
       type: String,
       required: true,
@@ -45,12 +45,14 @@ const classSchema = new Schema<IClass, ClassModel>(
     userGroup: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'UserGroup'
+        ref: 'UserGroup',
+        required: false,
       },
     ],
     userGroupTrack: {
       type: Schema.Types.ObjectId,
-      ref: 'UserGroupTrack'
+      ref: 'UserGroupTrack',
+      required: false,
     },
   },
   { timestamps: true }
