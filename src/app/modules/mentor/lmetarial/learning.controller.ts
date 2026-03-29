@@ -64,9 +64,12 @@ const updateResource = catchAsync(async (req, res) => {
     const id = req.params.id;
     const updateData = { ...req.body };
     
-    if (req.file) {
-        updateData.pdf = req.file.path;
-    }
+    // if (req.file) {
+    //     updateData.pdf = req.file.path;
+    // }
+if (req.files && (req.files as any)["file"]?.[0]) {
+    updateData.pdf = `/files/${(req.files as any)["file"][0].filename}`;
+  }
 
     const updatedResource = await LearningMaterialService.updateResourceFromDB(id, updateData);
     res.status(200).json({ success: true, data: updatedResource });

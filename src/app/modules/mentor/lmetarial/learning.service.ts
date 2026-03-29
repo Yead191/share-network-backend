@@ -56,7 +56,7 @@ const getResourceByIdFromDB = async (id: string) => {
 
 const getAllMentorResourcesFromDB = async (query?: Record<string, any>, userId?: string) => {
   const safeQuery = query || {};
-  const searchableFields = ['title', 'description', 'type', 'contentUrl'];
+  const searchableFields = ['title', 'description', 'type', 'contentUrl',];
 
   if (safeQuery.targeteAudience === 'STUDENT' && userId) {
     const student = await User.findById(userId).select('userGroup').lean();

@@ -13,7 +13,7 @@ const learningMaterialSchema = new Schema<ILearningMaterial>({
     type: {
     type: String,
     enum: Object.values(ResourceType),
-    required: true,
+    required: false,
     },
     contentUrl: { type: String, required: false },
     pdf: { type: String, required: false },
