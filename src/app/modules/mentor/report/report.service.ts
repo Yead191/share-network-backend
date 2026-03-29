@@ -25,7 +25,10 @@ const getAllStudentReportsFromDB = async (query: Record<string, any>) => {
         'softSkillImprovements',
         'comments',
         'goalSheet',
-        'objectives'
+        'objectives',
+        'studentId.firstName',
+        'studentId.lastName',
+        'studentId.email',
       ])
       .filter()
       .sort()
