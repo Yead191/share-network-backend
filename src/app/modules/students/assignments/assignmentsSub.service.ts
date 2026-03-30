@@ -48,34 +48,68 @@ const getStudentOwnSubmissionsFromDB = async (studentId: string) => {
   return result;
 };
 
-const getMyAssignmentsFromDB = async (userId: string) => {
+const getMyAssignmentsFromDB = async (userId: string, query: Record<string, unknown> = {}) => {
     const user = await User.findById(userId);
 
     if (!user) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'User not found!');
     }
 
-    const query: any = { published: true };
+    const assignmentQuery: any = { published: true };
 
-    const orConditions: any[] = [];
+    const requestedUserGroup = query.userGroup;
+    let requestedUserGroupIds: string[] = [];
 
-    if (user.userGroupTrack) {
+    if (requestedUserGroup) {
+      const rawGroupIds = Array.isArray(requestedUserGroup)
+        ? requestedUserGroup
+        : String(requestedUserGroup)
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+      requestedUserGroupIds = rawGroupIds
+        .map((id) => String(id))
+        .filter((id) => Types.ObjectId.isValid(id));
+
+      if (!requestedUserGroupIds.length) {
+        return [];
+      }
+    }
+
+    const userGroupIds = user.userGroup && user.userGroup.length > 0
+      ? user.userGroup.map((g: any) => g._id?.toString() || g.toString())
+      : [];
+
+    if (requestedUserGroupIds.length) {
+      const userGroupSet = new Set(userGroupIds);
+      const effectiveUserGroupIds = requestedUserGroupIds.filter((id) => userGroupSet.has(id));
+
+      if (!effectiveUserGroupIds.length) {
+        return [];
+      }
+
+      assignmentQuery.userGroup = { $in: effectiveUserGroupIds };
+    } else {
+      const orConditions: any[] = [];
+
+      if (user.userGroupTrack) {
         const trackId = user.userGroupTrack._id?.toString() || user.userGroupTrack.toString();
         orConditions.push({ userGroupTrack: trackId });
-    }
+      }
 
-    if (user.userGroup && user.userGroup.length > 0) {
-        const userGroupIds = user.userGroup.map((g: any) => g._id?.toString() || g.toString());
+      if (userGroupIds.length > 0) {
         orConditions.push({ userGroup: { $in: userGroupIds } });
+      }
+
+      if (orConditions.length > 0) {
+        assignmentQuery.$or = orConditions;
+      }
     }
 
-    if (orConditions.length > 0) {
-        query.$or = orConditions;
-    }
-
-    const result = await Assignment.find(query)
+    const result = await Assignment.find(assignmentQuery)
         .populate('teacher', 'firstName lastName profile')
-        .populate('userGroup')
+        .populate('userGroup userGroupTrack')
         .populate({
             path: 'submitAssignment',
             match: { studentId: userId },

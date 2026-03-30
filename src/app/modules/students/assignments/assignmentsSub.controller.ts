@@ -116,7 +116,7 @@ const getMySubmissions = catchAsync(async (req: Request, res: Response) => {
 const getMyAssignments = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id; 
 
-    const result = await AssignmentsSubService.getMyAssignmentsFromDB(userId);
+    const result = await AssignmentsSubService.getMyAssignmentsFromDB(userId, req.query);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
