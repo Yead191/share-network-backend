@@ -15,9 +15,9 @@ const weeklySchema = new Schema<IWeeklyReport>({
     softSkillImprovements: { type: [String], required: false },
     comments: { type: String },
     goalSheet: {
-        skillName: { type: String, required: true },
-        plannedProgress: { type: Number, required: true },
-        actualProgress: { type: Number, required: true },
+        skillName: { type: String, required: false },
+        plannedProgress: { type: Number, required: false },
+        actualProgress: { type: Number, required:  false },
     },
     objectives: { type: String, required: false },
 }, {
