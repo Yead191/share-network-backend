@@ -37,7 +37,18 @@ router.post(
     validateRequest(UserValidation.createAdminZodSchema),
     UserController.createAdmin
 );
-
+router.patch(
+    '/update-activity',
+    auth(
+        USER_ROLES.ADMIN,
+        USER_ROLES.SUPER_ADMIN,
+        USER_ROLES.MENTOR,
+        USER_ROLES.TEACHER,
+        USER_ROLES.STUDENT,
+        USER_ROLES.COORDINATOR
+    ),
+    UserController.updateActivity
+);
 router
     .route('/')
     .post(
@@ -85,5 +96,7 @@ router.delete(
   ),
   UserController.removeAssignedStudent
 );
+
+
 
 export const UserRoutes = router;

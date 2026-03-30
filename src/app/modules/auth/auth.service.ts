@@ -76,6 +76,12 @@ const loginUserFromDB = async (payload: ILoginData) => {
     password,
     isExistUser.password
   );
+  
+  if (isPasswordMatched) {
+  isExistUser.isOnline = true;
+  isExistUser.lastSeen = new Date();
+  await isExistUser.save();
+}
 
   if (!isPasswordMatched) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Password is incorrect!");

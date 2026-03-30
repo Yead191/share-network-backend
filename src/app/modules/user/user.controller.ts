@@ -126,6 +126,19 @@ const removeAssignedStudent = catchAsync(async (req: Request, res: Response) => 
     data: result,
   });
 });
+
+const updateActivity = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user.id;
+    const result = await UserService.updateActivityFromDB(userId);
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Activity updated successfully',
+        data: result
+    });
+});
+
 export const UserController = {
     createUser,
     createAdmin,
@@ -134,5 +147,6 @@ export const UserController = {
     updateLocation,
     updateprofileById,
     getStudents,
-    removeAssignedStudent
+    removeAssignedStudent,
+    updateActivity
 };

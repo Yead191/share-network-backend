@@ -217,6 +217,19 @@ const removeAssignedFromDB = async (
   return updatedMentor;
 };
 
+const updateActivityFromDB = async (userId: string) => {
+  const result = await User.findByIdAndUpdate(
+    userId,
+    {
+      isOnline: true,
+      lastSeen: new Date(),
+    },
+    { new: true }
+  );
+  return result;
+};
+
+
 export const UserService = {
   createUserToDB,
   updateProfileToDB,
@@ -225,5 +238,6 @@ export const UserService = {
   getProfileFromDB,
   updateprofileByIdToDB,
   getStudentsFromDB,
-  removeAssignedFromDB
+  removeAssignedFromDB,
+  updateActivityFromDB
 };

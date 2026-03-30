@@ -10,12 +10,9 @@ import { UserGroupTrack } from "../../user-group/user-group-track/user-group-tra
 
 const createClassToDB = async (payload: IClass) => {
 
-
   const result = await Class.create(payload);
 
-
   console.log('Created Class teacher field:', result.teacher);
-
 
   await RecentActivity.create({
     title: result.title,

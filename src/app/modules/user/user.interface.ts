@@ -45,6 +45,8 @@ export type IUser = {
         comment: string;
         courseCompletion: number;
     }];
+    isOnline: boolean;
+    lastSeen: Date;
     note: string;
     careerDirections: string[];
     Onboarding?: mongoose.Types.ObjectId | typeof Onboarding;

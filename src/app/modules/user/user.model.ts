@@ -262,6 +262,15 @@ const userSchema = new Schema<IUser, UserModal>(
       enum: ["PENDING", "ACTIVE", "NON_ACTIVE","ALUMNI_GRADUATED"],
       default: "PENDING",
     },
+    isOnline: {
+    type: Boolean,
+    default: false,
+    },
+    
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
     accountInformation: {
       status: { type: Boolean },
       accountId: { type: String },
