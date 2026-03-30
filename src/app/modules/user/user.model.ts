@@ -266,7 +266,7 @@ const userSchema = new Schema<IUser, UserModal>(
     type: Boolean,
     default: false,
     },
-    
+
     lastSeen: {
       type: Date,
       default: Date.now,
@@ -303,6 +303,16 @@ userSchema.index({ location: "2dsphere" });
 userSchema.statics.isExistUserById = async function (id: string) {
     return await this.findById(id);
 };
+
+const mapOnlineStatus = (_doc: unknown, ret: Record<string, any>) => {
+  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+  const lastSeenTime = ret?.lastSeen ? new Date(ret.lastSeen).getTime() : 0;
+  ret.isOnline = lastSeenTime > fiveMinutesAgo;
+  return ret;
+};
+
+userSchema.set('toJSON', { virtuals: true, transform: mapOnlineStatus });
+userSchema.set('toObject', { virtuals: true, transform: mapOnlineStatus });
 
 userSchema.statics.isExistUserByEmail = async (email: string) => {
   const isExist = await User.findOne({ email });

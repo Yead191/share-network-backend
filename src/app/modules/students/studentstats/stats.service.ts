@@ -79,7 +79,11 @@ const getPendingAssignmentsFromDB = async (studentId: string) => {
   const activeAssignments = await Assignment.find({ dueDate: { $gte: new Date() } })
     .sort({ dueDate: 1 })
     .limit(3)
-    .select('title description dueDate');
+    .select('title description dueDate submitAssignment status userGroup userGroupTrack totalPoint attachment teacher published ')
+    .populate('teacher', 'firstName lastName email profile')
+    .populate('userGroup', 'name description')
+    .populate('userGroupTrack', 'name')
+    .lean();
   
   return activeAssignments;
 };

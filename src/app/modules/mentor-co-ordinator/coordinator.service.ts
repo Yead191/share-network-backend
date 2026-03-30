@@ -6,8 +6,8 @@ import { UserGroupTrack } from "../user-group/user-group-track/user-group-track.
 import { UserGroup } from "../user-group/user-group.model";
 import { User } from "../user/user.model";
 import { Class } from "../(teacher)/class/class.model";
-import { query } from 'express';
 import QueryBuilder from "../../../shared/apiFeature";
+import { Types } from "mongoose";
 
 const getDashboardStats = async () => {
     const totalMentors = await User.countDocuments({ role: USER_ROLES.MENTOR });
@@ -30,13 +30,36 @@ const getAllMentorsFromDB = async (query: Record<string, unknown>) => {
     Object.entries(query).filter(([_, v]) => v !== "" && v !== null && v !== undefined)
   );
 
+    const page = Math.max(Number(cleanQuery.page) || 1, 1);
+    const parsedLimit = Number(cleanQuery.limit);
+    const limit = cleanQuery.limit !== undefined && parsedLimit === 0 ? 0 : parsedLimit || 10;
+
+    const baseConditions: Record<string, any> = { role: USER_ROLES.MENTOR };
+
+    if (cleanQuery.userGroup) {
+        const rawGroupIds = Array.isArray(cleanQuery.userGroup)
+            ? cleanQuery.userGroup
+            : String(cleanQuery.userGroup).split(',').map((value) => value.trim()).filter(Boolean);
+
+        const validGroupIds = rawGroupIds.filter((id) => Types.ObjectId.isValid(String(id)));
+        if (!validGroupIds.length) {
+            return { mentors: [], pagination: { total: 0, totalPage: 1, page, limit } };
+        }
+
+        baseConditions.userGroup = {
+            $in: validGroupIds.map((id) => new Types.ObjectId(String(id))),
+        };
+
+        delete cleanQuery.userGroup;
+    }
+
   if (cleanQuery.status) {
     cleanQuery.verified = cleanQuery.status === "Active" ? true : false;
     delete cleanQuery.status; 
   }
 
   const mentorQuery = new QueryBuilder(
-    User.find({ role: USER_ROLES.MENTOR }),
+        User.find(baseConditions),
     cleanQuery
   )
     .search(['name', 'firstName', 'lastName', 'email'])
@@ -69,8 +92,30 @@ const updateMentorStatusFromDB = async (id: string, status: boolean) => {
     return mentor;
 };
 
-const getAllClassesFromDB = async () => {
-    const classes = await Class.find()
+const getAllClassesFromDB = async (query: Record<string, unknown>) => {
+    const cleanQuery: Record<string, unknown> = Object.fromEntries(
+        Object.entries(query).filter(([_, value]) => value !== "" && value !== null && value !== undefined)
+    );
+
+    const filterConditions: Record<string, any> = {};
+
+    if (cleanQuery.userGroup) {
+        const rawGroupIds = Array.isArray(cleanQuery.userGroup)
+            ? cleanQuery.userGroup
+            : String(cleanQuery.userGroup).split(',').map((value) => value.trim()).filter(Boolean);
+
+        const validGroupIds = rawGroupIds.filter((id) => Types.ObjectId.isValid(String(id)));
+
+        if (!validGroupIds.length) {
+            return [];
+        }
+
+        filterConditions.userGroup = {
+            $in: validGroupIds.map((id) => new Types.ObjectId(String(id))),
+        };
+    }
+
+    const classes = await Class.find(filterConditions)
     .populate({ path: 'teacher', select: 'name' })
     .populate({ path: 'userGroup', select: 'name' })
     .populate({ path: 'userGroupTrack', select: 'name' });

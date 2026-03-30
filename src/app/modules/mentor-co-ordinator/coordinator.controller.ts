@@ -55,7 +55,7 @@ const updateMentorStatus = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllClasses = catchAsync(async (req: Request, res: Response) => {
-    const result = await CoordinatorService.getAllClassesFromDB();
+    const result = await CoordinatorService.getAllClassesFromDB(req.query);
 
     sendResponse(res, {
         statusCode: StatusCodes.OK,
