@@ -21,7 +21,8 @@ app.use(
         "http://10.10.7.13:4173",
         "http://localhost:4173",
         "http://10.10.7.72:4173",
-        "http://10.10.7.9:4173"
+        "http://10.10.7.9:4173",
+        "http://10.10.7.50:4173",
       ];
       
       if (!origin) return callback(null, true);
