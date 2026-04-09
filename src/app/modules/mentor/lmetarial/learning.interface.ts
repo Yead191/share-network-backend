@@ -13,6 +13,7 @@ export interface ILearningMaterial extends Document {
     pdf?: string;
     targeteAudience: string;
     targertGroup?: Types.ObjectId;
+    targetTrack?: Types.ObjectId;
     markAsAssigned?: boolean;
     createdAt: Date;
     updatedAt: Date;

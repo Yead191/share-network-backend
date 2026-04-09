@@ -25,6 +25,8 @@ const learningMaterialSchema = new Schema<ILearningMaterial>({
             default: USER_ROLES.STUDENT,
             required: true
         },
+
+    targetTrack: { type: Schema.Types.ObjectId, ref: 'UserGroupTrack', required: false },
     
     markAsAssigned: { type: Boolean, required: false },
     

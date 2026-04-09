@@ -71,11 +71,15 @@ const getResourceByIdFromDB = async (id: string) => {
 
 const getAllMentorResourcesFromDB = async (query?: Record<string, any>, userId?: string) => {
   const safeQuery = query || {};
-  const searchableFields = ['title', 'description', 'type', 'contentUrl',];
+  const searchableFields = ['title', 'description', 'type', 'contentUrl' ];
 
   if (safeQuery.targeteAudience === 'STUDENT' && userId) {
-    const student = await User.findById(userId).select('userGroup').lean();
+    const student = await User.findById(userId)
+    .select('userGroup')
+    .select('targetTrack')
+    .lean();
     const studentGroupIds = student?.userGroup || [];
+    const studentTrackIds = student?.targetTrack || [];
 
    
     const filterCondition = {
@@ -84,6 +88,7 @@ const getAllMentorResourcesFromDB = async (query?: Record<string, any>, userId?:
         { targertGroup: { $in: studentGroupIds } },
         { targertGroup: null },
         { targertGroup: { $exists: false } },
+        { targetTrack: { $in: studentTrackIds } },
       ],
     };
 
@@ -96,11 +101,12 @@ const getAllMentorResourcesFromDB = async (query?: Record<string, any>, userId?:
     const resources = await qb.queryModel
       .populate({ path: 'createdBy', select: 'firstName lastName email profile contact location' })
       .populate({ path: 'targertGroup', select: 'name description' })
+      .populate({ path: 'targetTrack', select: 'name description' })
       .exec();
 
     const pagination = await qb.getPaginationInfo();
     return { resources, pagination };
-  }
+  } 
 
 
   const qb = new QueryBuilder(LearningMaterial.find(), safeQuery)
@@ -112,6 +118,7 @@ const getAllMentorResourcesFromDB = async (query?: Record<string, any>, userId?:
   const resources = await qb.queryModel
     .populate({ path: 'createdBy', select: 'firstName lastName email profile contact location' })
     .populate({ path: 'targertGroup', select: 'name description' })
+    .populate({ path: 'targetTrack', select: 'name description' })
     .exec();
 
   const pagination = await qb.getPaginationInfo();
