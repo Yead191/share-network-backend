@@ -6,14 +6,17 @@ import { ISendEmail } from '../types/email';
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: parseInt(process.env.EMAIL_PORT || '587'),
-  secure: true, 
+  secure: process.env.EMAIL_PORT === '465',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
   tls: {
     rejectUnauthorized: false 
-  }
+  },
+  connectionTimeout: 20000, 
+  greetingTimeout: 20000,
+  socketTimeout: 20000,
 });
 
 export const sendEmail = async (mailOptions: any) => {
