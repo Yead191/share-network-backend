@@ -40,6 +40,102 @@ const createClassToDB = async (payload: IClass) => {
 
   return populated;
 };
+// const getAllClassesFromDB = async (query: Record<string, any>) => {
+//   const queryData = { ...query };
+//   const filterConditions: Record<string, any> = {};
+//   const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
+
+//   const page = Math.max(Number(queryData.page) || 1, 1);
+//   const parsedLimit = Number(queryData.limit);
+//   const limit = queryData.limit !== undefined && parsedLimit === 0 ? 0 : parsedLimit || 10;
+
+//   delete queryData.searchTerm;
+
+//   if (queryData.userGroup) {
+//     const userGroupValues = Array.isArray(queryData.userGroup)
+//       ? queryData.userGroup
+//       : String(queryData.userGroup).split(',').map((value) => value.trim()).filter(Boolean);
+
+//     const validUserGroupIds = userGroupValues.filter((id) => Types.ObjectId.isValid(id));
+
+//     if (!validUserGroupIds.length) {
+//       return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
+//     }
+
+//     filterConditions.userGroup = { $in: validUserGroupIds.map((id) => new Types.ObjectId(id)) };
+//   }
+
+//   if (queryData.userGroupTrack) {
+//     const userGroupTrackId = String(queryData.userGroupTrack).trim();
+//     if (!Types.ObjectId.isValid(userGroupTrackId)) {
+//       return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
+//     }
+
+//     filterConditions.userGroupTrack = new Types.ObjectId(userGroupTrackId);
+//   }
+
+//   delete queryData.userGroup;
+//   delete queryData.userGroupTrack;
+
+//   const baseQuery = Class.find(filterConditions);
+
+//   const result = new QueryBuilder(baseQuery, queryData)
+//     .filter()
+//     .sort()
+//     .paginate();
+
+//   if (searchTerm) {
+//     const searchConditions: Record<string, any>[] = [
+//       { title: { $regex: searchTerm, $options: 'i' } },
+//       { location: { $regex: searchTerm, $options: 'i' } },
+//       { description: { $regex: searchTerm, $options: 'i' } },
+//     ];
+
+//     const [matchedGroups, matchedTracks] = await Promise.all([
+//       UserGroup.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
+//       UserGroupTrack.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
+//     ]);
+
+//     const matchedGroupIds = matchedGroups.map((group) => group._id);
+//     const matchedTrackIds = matchedTracks.map((track) => track._id);
+
+//     if (matchedGroupIds.length) {
+//       searchConditions.push({ userGroup: { $in: matchedGroupIds } });
+//     }
+
+//     if (matchedTrackIds.length) {
+//       searchConditions.push({ userGroupTrack: { $in: matchedTrackIds } });
+//     }
+
+//     const existingQuery = result.queryModel.getQuery();
+//     result.queryModel = result.queryModel.find({
+//       $and: [existingQuery, { $or: searchConditions }],
+//     });
+//   }
+
+//   const classes = await result.queryModel
+//     .populate({
+//       path: 'userGroup',
+//       select: 'name',
+//     })
+//     .populate({
+//       path: 'userGroupTrack',
+//       select: 'name',
+//     })
+//     .populate({
+//       path: 'studentId',
+//       select: 'firstName lastName email profile',
+//       model: 'User',
+//     })
+//     .populate({
+//       path: 'teacher',
+//       select: 'firstName lastName email profile',
+//       model: 'User',
+//     });
+
+//   const pagination = await result.getPaginationInfo();
+//   return { classes, pagination };
+// };
 const getAllClassesFromDB = async (query: Record<string, any>) => {
   const queryData = { ...query };
   const filterConditions: Record<string, any> = {};
@@ -49,6 +145,10 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
   const parsedLimit = Number(queryData.limit);
   const limit = queryData.limit !== undefined && parsedLimit === 0 ? 0 : parsedLimit || 10;
 
+  if (!queryData.sort) {
+    queryData.sort = '-classDate'; 
+  }
+
   delete queryData.searchTerm;
 
   if (queryData.userGroup) {
@@ -57,11 +157,9 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
       : String(queryData.userGroup).split(',').map((value) => value.trim()).filter(Boolean);
 
     const validUserGroupIds = userGroupValues.filter((id) => Types.ObjectId.isValid(id));
-
     if (!validUserGroupIds.length) {
       return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
     }
-
     filterConditions.userGroup = { $in: validUserGroupIds.map((id) => new Types.ObjectId(id)) };
   }
 
@@ -70,7 +168,6 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
     if (!Types.ObjectId.isValid(userGroupTrackId)) {
       return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
     }
-
     filterConditions.userGroupTrack = new Types.ObjectId(userGroupTrackId);
   }
 
@@ -99,13 +196,8 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
     const matchedGroupIds = matchedGroups.map((group) => group._id);
     const matchedTrackIds = matchedTracks.map((track) => track._id);
 
-    if (matchedGroupIds.length) {
-      searchConditions.push({ userGroup: { $in: matchedGroupIds } });
-    }
-
-    if (matchedTrackIds.length) {
-      searchConditions.push({ userGroupTrack: { $in: matchedTrackIds } });
-    }
+    if (matchedGroupIds.length) searchConditions.push({ userGroup: { $in: matchedGroupIds } });
+    if (matchedTrackIds.length) searchConditions.push({ userGroupTrack: { $in: matchedTrackIds } });
 
     const existingQuery = result.queryModel.getQuery();
     result.queryModel = result.queryModel.find({
@@ -114,24 +206,10 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
   }
 
   const classes = await result.queryModel
-    .populate({
-      path: 'userGroup',
-      select: 'name',
-    })
-    .populate({
-      path: 'userGroupTrack',
-      select: 'name',
-    })
-    .populate({
-      path: 'studentId',
-      select: 'firstName lastName email profile',
-      model: 'User',
-    })
-    .populate({
-      path: 'teacher',
-      select: 'firstName lastName email profile',
-      model: 'User',
-    });
+    .populate({ path: 'userGroup', select: 'name' })
+    .populate({ path: 'userGroupTrack', select: 'name' })
+    .populate({ path: 'studentId', select: 'firstName lastName email profile', model: 'User' })
+    .populate({ path: 'teacher', select: 'firstName lastName email profile', model: 'User' });
 
   const pagination = await result.getPaginationInfo();
   return { classes, pagination };

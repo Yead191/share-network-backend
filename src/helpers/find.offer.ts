@@ -60,6 +60,6 @@ export function timeInRange(minute: number, startTime: number, endTime: number):
 
 
 export function isValidDay(rawDay: any): boolean {
-  // Check if rawDay matches any value in the Day enum (case-insensitive)
-  return Object.values(Day).some(day => day.toUpperCase() === rawDay.toString().toUpperCase());
+ // Check if rawDay matches any value in the Day enum (case-insensitive)
+return Object.values(Day).some(day => day.toUpperCase() === rawDay.toString().toUpperCase());
 }
