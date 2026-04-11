@@ -45,6 +45,6 @@ const eventSchema = new Schema<IEvent>({
         ref: 'UserGroup'
     }
 }, {
-    timestamps: true    
+    timestamps: true
 })
 export const Event = model<IEvent>('Event', eventSchema);

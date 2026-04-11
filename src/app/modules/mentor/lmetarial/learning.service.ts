@@ -6,40 +6,41 @@ import QueryBuilder from "../../../../shared/apiFeature";
 import { User } from "../../user/user.model";
 import { sendNotifications } from "../../../../helpers/notificationsHelper";
 import { socketHelper } from "../../../../helpers/socketHelper";
+import { UserGroupTrack } from "../../user-group/user-group-track/user-group-track.model";
 
 
 const createResourceFromDB = async (payload: ILearningMaterial) => {
-    const resource  = await LearningMaterial.create(payload);
-    const baseText = `new resource added ${resource.title}.`;
+  const resource = await LearningMaterial.create(payload);
+  const baseText = `new resource added ${resource.title}.`;
 
-    const receiverFilter = resource.targertGroup
-      ? { role: 'STUDENT', userGroup: resource.targertGroup }
-      : { role: resource.targeteAudience };
+  const receiverFilter = resource.targertGroup
+    ? { role: 'STUDENT', userGroup: resource.targertGroup }
+    : { role: resource.targeteAudience };
 
-    const receivers = await User.find(receiverFilter).select('_id').lean();
+  const receivers = await User.find(receiverFilter).select('_id').lean();
 
-    if (receivers.length) {
-      await Promise.all(
-        receivers.map((receiver) =>
-          sendNotifications({
-            text: baseText,
-            receiver: receiver._id,
-            type: resource.targeteAudience === 'MENTOR' ? 'MENTOR' : 'STUDENT',
-          })
-        )
-      );
-    }
+  if (receivers.length) {
+    await Promise.all(
+      receivers.map((receiver) =>
+        sendNotifications({
+          text: baseText,
+          receiver: receiver._id,
+          type: resource.targeteAudience === 'MENTOR' ? 'MENTOR' : 'STUDENT',
+        })
+      )
+    );
+  }
 
-    const io = (socketHelper as { getIO?: () => { emit: (event: string, data: unknown) => void } }).getIO?.();
-    if (io) {
-      io.emit('notification', {
-        text: baseText,
-        receiverCount: receivers.length,
-        targetRole: resource.targertGroup ? 'STUDENT' : resource.targeteAudience,
-      });
-    }
+  const io = (socketHelper as { getIO?: () => { emit: (event: string, data: unknown) => void } }).getIO?.();
+  if (io) {
+    io.emit('notification', {
+      text: baseText,
+      receiverCount: receivers.length,
+      targetRole: resource.targertGroup ? 'STUDENT' : resource.targeteAudience,
+    });
+  }
 
-    return resource;
+  return resource;
 }
 
 
@@ -71,17 +72,17 @@ const getResourceByIdFromDB = async (id: string) => {
 
 const getAllMentorResourcesFromDB = async (query?: Record<string, any>, userId?: string) => {
   const safeQuery = query || {};
-  const searchableFields = ['title', 'description', 'type', 'contentUrl' ];
+  const searchableFields = ['title', 'description', 'type', 'contentUrl'];
 
   if (safeQuery.targeteAudience === 'STUDENT' && userId) {
     const student = await User.findById(userId)
-    .select('userGroup')
-    .select('targetTrack')
-    .lean();
+      .select('userGroup')
+      .select('targetTrack')
+      .lean();
     const studentGroupIds = student?.userGroup || [];
     const studentTrackIds = student?.targetTrack || [];
 
-   
+
     const filterCondition = {
       targeteAudience: 'STUDENT',
       $or: [
@@ -92,7 +93,7 @@ const getAllMentorResourcesFromDB = async (query?: Record<string, any>, userId?:
       ],
     };
 
-    delete safeQuery.targeteAudience; 
+    delete safeQuery.targeteAudience;
     const qb = new QueryBuilder(LearningMaterial.find(filterCondition), safeQuery)
       .search(searchableFields)
       .sort()
@@ -106,9 +107,10 @@ const getAllMentorResourcesFromDB = async (query?: Record<string, any>, userId?:
 
     const pagination = await qb.getPaginationInfo();
     return { resources, pagination };
-  } 
+  }
 
 
+  console.log("safeQuery", safeQuery);
   const qb = new QueryBuilder(LearningMaterial.find(), safeQuery)
     .search(searchableFields)
     .filter()
@@ -136,7 +138,7 @@ const getFilteredResourcesFromDB = async (query?: Record<string, any>) => {
     .paginate();
 
   const resources = await qb.queryModel
-    .populate('targertGroup') 
+    .populate('targertGroup')
     .select('-createdBy')
     .exec();
 
@@ -146,43 +148,52 @@ const getFilteredResourcesFromDB = async (query?: Record<string, any>) => {
 };
 
 const updateResourceFromDB = async (id: string, payload: ILearningMaterial) => {
-    const updatePayload: any = { ...payload };
-    
-    if (updatePayload.targertGroup) {
-        const { Types } = await import('mongoose');
-        updatePayload.targertGroup = new Types.ObjectId(updatePayload.targertGroup);
-    }
+  const updatePayload: any = { ...payload };
 
-    const result = await LearningMaterial.findByIdAndUpdate(
-        id, 
-        { $set: updatePayload },  
-        {
-            new: true, 
-            runValidators: true
-        }
-    );
-
-    if (!result) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Resource not found');
+  if (updatePayload.targertGroup) {
+    const { Types } = await import('mongoose');
+    if (Array.isArray(updatePayload.targertGroup)) {
+      updatePayload.targertGroup = updatePayload.targertGroup.map((id: string) => new Types.ObjectId(id));
+    } else {
+      updatePayload.targertGroup = new Types.ObjectId(updatePayload.targertGroup);
     }
-    return result;
+  }
+
+  const isTargetTrackExists = await UserGroupTrack.findById(updatePayload.targetTrack).lean();
+  if (!isTargetTrackExists) {
+    updatePayload.targetTrack = null;
+  }
+
+  const result = await LearningMaterial.findByIdAndUpdate(
+    id,
+    { $set: updatePayload },
+    {
+      new: true,
+      runValidators: true
+    }
+  );
+
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Resource not found');
+  }
+  return result;
 };
 
 const deleteResourceFromDB = async (id: string) => {
-    const cleanId = id.trim();
-    const result = await LearningMaterial.findByIdAndDelete(cleanId);
+  const cleanId = id.trim();
+  const result = await LearningMaterial.findByIdAndDelete(cleanId);
 
-    if (!result) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Resource not found');
-    }
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Resource not found');
+  }
 }
 
 export const LearningMaterialService = {
-    createResourceFromDB,
-    getCreatedByResourcesFromDB,
-    getResourceByIdFromDB,
-    getAllMentorResourcesFromDB,
-    updateResourceFromDB,
-    deleteResourceFromDB,
-    getFilteredResourcesFromDB
+  createResourceFromDB,
+  getCreatedByResourcesFromDB,
+  getResourceByIdFromDB,
+  getAllMentorResourcesFromDB,
+  updateResourceFromDB,
+  deleteResourceFromDB,
+  getFilteredResourcesFromDB
 };

@@ -3,27 +3,32 @@ import { LearningMaterialService } from "./learning.service";
 import { Types } from "mongoose";
 
 const createResource = catchAsync(async (req, res) => {
-  const result = req.body;
-  result.createdBy = req.user.id;
+    const result = req.body;
+    console.log("result:", result);
+    //   result.createdBy = req.user.id;
 
-  if (result.targertGroup) {
-    result.targertGroup = new Types.ObjectId(result.targertGroup);
-  }
+    if (result.targertGroup) {
+        if (Array.isArray(result.targertGroup)) {
+            result.targertGroup = result.targertGroup.map((id: string) => new Types.ObjectId(id));
+        } else {
+            result.targertGroup = new Types.ObjectId(result.targertGroup);
+        }
+    }
+    result.createdBy = req.user.id;
 
-  console.log("targertGroup ID being saved:", result.targertGroup);
-  console.log("Type:", typeof result.targertGroup);
-  if (req.files && (req.files as any)["file"]?.[0]) {
-    result.pdf = `/files/${(req.files as any)["file"][0].filename}`;
-  }
+    console.log("targertGroup ID being saved:", result.targertGroup);
+    console.log("Type:", typeof result.targertGroup);
+    if (req.files && (req.files as any)["file"]?.[0]) {
+        result.pdf = `/files/${(req.files as any)["file"][0].filename}`;
+    }
 
-  console.log("PAYLOAD:", result);
 
-  const newResource = await LearningMaterialService.createResourceFromDB(result);
+    const newResource = await LearningMaterialService.createResourceFromDB(result);
 
-  res.status(201).json({
-    success: true,
-    data: newResource,
-  });
+    res.status(201).json({
+        success: true,
+        data: newResource,
+    });
 });
 
 const getCreatedByResources = catchAsync(async (req, res) => {
@@ -44,8 +49,8 @@ const getResourceById = catchAsync(async (req, res) => {
     });
 });
 
-const  getAllResources = catchAsync(async (req, res) => {
-    const resources = await LearningMaterialService.getAllMentorResourcesFromDB(req.query,req.user.id);
+const getAllResources = catchAsync(async (req, res) => {
+    const resources = await LearningMaterialService.getAllMentorResourcesFromDB(req.query, req.user.id);
     res.status(200).json({
         success: true,
         data: resources,
@@ -63,13 +68,13 @@ const getFilteredResources = catchAsync(async (req, res) => {
 const updateResource = catchAsync(async (req, res) => {
     const id = req.params.id;
     const updateData = { ...req.body };
-    
+
     // if (req.file) {
     //     updateData.pdf = req.file.path;
     // }
-if (req.files && (req.files as any)["file"]?.[0]) {
-    updateData.pdf = `/files/${(req.files as any)["file"][0].filename}`;
-  }
+    if (req.files && (req.files as any)["file"]?.[0]) {
+        updateData.pdf = `/files/${(req.files as any)["file"][0].filename}`;
+    }
 
     const updatedResource = await LearningMaterialService.updateResourceFromDB(id, updateData);
     res.status(200).json({ success: true, data: updatedResource });

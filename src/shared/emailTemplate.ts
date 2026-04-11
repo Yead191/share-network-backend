@@ -1,4 +1,4 @@
-import { ICreateAccount, IResetPassword } from '../types/emailTemplate';
+import { ICreateAccount, IResetPassword, IEventInvitation } from '../types/emailTemplate';
 
 const createAccount = (values: ICreateAccount) => {
     const data = {
@@ -68,7 +68,52 @@ const resetPassword = (values: IResetPassword) => {
     return data;
 };
 
+
+const eventInvitation = (values: IEventInvitation) => {
+    const data = {
+        to: values.email,
+        subject: `Event Invitation: ${values.eventName}`,
+        html: `
+      <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 20px; color: #555;">
+        <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #fff; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+          
+          <!-- Logo -->
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://i.postimg.cc/JzdQzfjq/Flx-Book-logo.png" alt="FlxBook Logo" style="width: 150px;" />
+          </div>
+
+          <!-- Greeting -->
+          <h2 style="color: #3389d0; font-size: 26px; text-align: center; margin-bottom: 25px; font-weight: bold;">Hey, ${values.name}!</h2>
+
+          <!-- Event Invitation -->
+          <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 20px;">You're invited to an upcoming event!</p>
+          
+          <!-- Event Details -->
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+            <h3 style="color: #3389d0; font-size: 20px; margin-bottom: 15px; text-align: center;">${values.eventName}</h3>
+            ${values.eventDescription ? `<p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 10px;">${values.eventDescription}</p>` : ''}
+            ${values.eventDate ? `<p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 5px;"><strong>Date:</strong> ${new Date(values.eventDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>` : ''}
+            ${values.eventLocation ? `<p style="color: #555; font-size: 14px; line-height: 1.5;"><strong>Location:</strong> ${values.eventLocation}</p>` : ''}
+          </div>
+
+          <!-- Call to Action -->
+          <div style="text-align: center; margin-bottom: 30px;">
+            <p style="color: #555; font-size: 16px; line-height: 1.5;">We look forward to seeing you there!</p>
+          </div>
+
+          <!-- Footer -->
+          <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px;">This is an automated invitation. Please contact support if you have any questions.</p>
+          <p style="color: #999; font-size: 12px; text-align: center;">&copy; 2024 FlxBook. All rights reserved.</p>
+
+        </div>
+      </body>
+    `,
+    };
+    return data;
+}; 
+
 export const emailTemplate = {
     createAccount,
     resetPassword,
+    eventInvitation,
 };
