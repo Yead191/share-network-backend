@@ -94,32 +94,67 @@ const getAssignmentByIdFromDB = async (id: string) => {
   return result;
 };
 
+// const updateAssignmentToDB = async (id: string, payload: Partial<IAssignment>) => {
+
+//   if(payload.totalPoint){
+//     payload.totalPoint = Number(payload.totalPoint);
+//   }
+
+//   if(payload.userGroupTrack){
+//     const isUserGroupTrackExist = await UserGroupTrack.exists({
+//       _id: payload.userGroupTrack
+//     });
+//     if(!isUserGroupTrackExist){
+//       throw new ApiError(StatusCodes.NOT_FOUND, "User Group Track Id not found!");
+//     }
+//   }
+//   if(payload.userGroup){
+//     const isUserGroupExist = await UserGroup.exists({_id: {$in: payload.userGroup}});
+//     if(!isUserGroupExist){
+//       throw new ApiError(StatusCodes.NOT_FOUND, "User Group Id not found!");
+//     }
+//   }
+//   console.log('payload-',payload)
+//   const result = await Assignment.findByIdAndUpdate(id, payload, { new: true });
+//   if (!result) {
+//     throw new ApiError(StatusCodes.NOT_FOUND, "Assignment doesn't exist!");
+//   }
+//   return  result ;
+// };
 const updateAssignmentToDB = async (id: string, payload: Partial<IAssignment>) => {
 
-  if(payload.totalPoint){
+  if (payload.totalPoint !== undefined) {
     payload.totalPoint = Number(payload.totalPoint);
   }
 
-  if(payload.userGroupTrack){
-    const isUserGroupTrackExist = await UserGroupTrack.exists({
-      _id: payload.userGroupTrack
-    });
-    if(!isUserGroupTrackExist){
-      throw new ApiError(StatusCodes.NOT_FOUND, "User Group Track Id not found!");
+  if (payload.userGroupTrack !== undefined) {
+    if (payload.userGroupTrack) {
+      const isUserGroupTrackExist = await UserGroupTrack.exists({
+        _id: payload.userGroupTrack
+      });
+      if (!isUserGroupTrackExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "User Group Track Id not found!");
+      }
+    } 
+
+  }
+
+  if (payload.userGroup !== undefined) {
+    if (Array.isArray(payload.userGroup) && payload.userGroup.length > 0) {
+      const isUserGroupExist = await UserGroup.exists({ _id: { $in: payload.userGroup } });
+      if (!isUserGroupExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "User Group Id not found!");
+      }
     }
   }
-  if(payload.userGroup){
-    const isUserGroupExist = await UserGroup.exists({_id: {$in: payload.userGroup}});
-    if(!isUserGroupExist){
-      throw new ApiError(StatusCodes.NOT_FOUND, "User Group Id not found!");
-    }
-  }
-  console.log('payload-',payload)
+
+  console.log('payload-', payload);
   const result = await Assignment.findByIdAndUpdate(id, payload, { new: true });
+  
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Assignment doesn't exist!");
   }
-  return  result ;
+  return result;
 };
 
 const deleteAssignmentFromDB = async (id: string) => {
