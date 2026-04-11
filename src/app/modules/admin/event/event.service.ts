@@ -10,16 +10,16 @@ import { emailHelper } from "../../../../helpers/emailHelper";
 const createEventFromDB = async (payload: Partial<IEvent>) => {
   // Create the event first
   const event = await Event.create(payload);
-    let students;
+  console.log(event);
+  let students;
   if (!payload.studentAssigned || payload.studentAssigned.length === 0) {
-    students = await User.find({ role: 'STUDENT' }, "email firstName lastName");
+    students = await User.find({ role: "STUDENT" }, "email firstName lastName");
   } else {
     students = await User.find(
       { _id: { $in: payload.studentAssigned } },
-      "email firstName lastName"
-      );
-    }
-
+      "email firstName lastName",
+    );
+  }
 
   // Send emails in background without blocking the response
   if (students.length > 0) {
@@ -30,10 +30,10 @@ const createEventFromDB = async (payload: Partial<IEvent>) => {
           if (student.email) {
             const emailData = emailTemplate.eventInvitation({
               email: student.email,
-              name: student.firstName || 'Student',
+              name: student.firstName || "Student",
               eventName: event.title,
               eventDescription: event.description,
-              eventDate: event.date?.toDateString(),
+              eventDate: event.date as any,
               eventLocation: event.location,
             });
             return emailHelper.sendEmail(emailData);
@@ -42,9 +42,11 @@ const createEventFromDB = async (payload: Partial<IEvent>) => {
         });
 
         await Promise.all(emailPromises);
-        console.log(`Sent ${emailPromises.length} event invitation emails in background`);
+        console.log(
+          `Sent ${emailPromises.length} event invitation emails in background`,
+        );
       } catch (error) {
-        console.error('Error sending background emails:', error);
+        console.error("Error sending background emails:", error);
       }
     });
   }
@@ -183,7 +185,7 @@ const updateEventByIdInDB = async (id: string, payload: Partial<IEvent>) => {
   // Get the original event to compare student assignments
   const originalEvent = await Event.findById(id);
   if (!originalEvent) {
-    throw new Error('Event not found');
+    throw new Error("Event not found");
   }
 
   // Update the event
@@ -196,17 +198,20 @@ const updateEventByIdInDB = async (id: string, payload: Partial<IEvent>) => {
   if (payload.studentAssigned && Array.isArray(payload.studentAssigned)) {
     const originalStudentIds = originalEvent.studentAssigned || [];
     const newStudentIds = payload.studentAssigned;
-    
+
     // Find students who are newly added (in new but not in original)
     const newlyAddedStudentIds = newStudentIds.filter(
-      (id) => !originalStudentIds.some(originalId => originalId.toString() === id.toString())
+      (id) =>
+        !originalStudentIds.some(
+          (originalId) => originalId.toString() === id.toString(),
+        ),
     );
 
     if (newlyAddedStudentIds.length > 0) {
       // Get details of newly added students
       const newStudents = await User.find(
         { _id: { $in: newlyAddedStudentIds } },
-        "email firstName lastName"
+        "email firstName lastName",
       );
 
       console.log("Newly added students to notify:", newStudents);
@@ -220,10 +225,10 @@ const updateEventByIdInDB = async (id: string, payload: Partial<IEvent>) => {
               if (student.email) {
                 const emailData = emailTemplate.eventInvitation({
                   email: student.email,
-                  name: student.firstName || 'Student',
+                  name: student.firstName || "Student",
                   eventName: updatedEvent.title,
                   eventDescription: updatedEvent.description,
-                  eventDate: updatedEvent.date?.toString(),
+                  eventDate: updatedEvent.date as any,
                   eventLocation: updatedEvent.location,
                 });
                 return emailHelper.sendEmail(emailData);
@@ -232,9 +237,14 @@ const updateEventByIdInDB = async (id: string, payload: Partial<IEvent>) => {
             });
 
             await Promise.all(emailPromises);
-            console.log(`Sent ${emailPromises.length} event invitation emails to newly added students in background`);
+            console.log(
+              `Sent ${emailPromises.length} event invitation emails to newly added students in background`,
+            );
           } catch (error) {
-            console.error('Error sending background emails for updated event:', error);
+            console.error(
+              "Error sending background emails for updated event:",
+              error,
+            );
           }
         });
       }

@@ -1,10 +1,14 @@
-import { ICreateAccount, IResetPassword, IEventInvitation } from '../types/emailTemplate';
+import {
+  ICreateAccount,
+  IResetPassword,
+  IEventInvitation,
+} from "../types/emailTemplate";
 
 const createAccount = (values: ICreateAccount) => {
-    const data = {
-        to: values.email,
-        subject: 'Verify your account',
-        html: `
+  const data = {
+    to: values.email,
+    subject: "Verify your account",
+    html: `
       <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 20px; color: #555;">
         <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #fff; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
           
@@ -33,15 +37,15 @@ const createAccount = (values: ICreateAccount) => {
         </div>
       </body>
     `,
-    };
-    return data;
+  };
+  return data;
 };
 
 const resetPassword = (values: IResetPassword) => {
-    const data = {
-        to: values.email,
-        subject: 'Reset your password',
-        html: `
+  const data = {
+    to: values.email,
+    subject: "Reset your password",
+    html: `
       <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 20px; color: #555;">
         <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #fff; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
           
@@ -64,22 +68,21 @@ const resetPassword = (values: IResetPassword) => {
         </div>
       </body>
     `,
-    };
-    return data;
+  };
+  return data;
 };
 
-
 const eventInvitation = (values: IEventInvitation) => {
-    const data = {
-        to: values.email,
-        subject: `Event Invitation: ${values.eventName}`,
-        html: `
+  const data = {
+    to: values.email,
+    subject: `Event Invitation: ${values.eventName}`,
+    html: `
       <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 20px; color: #555;">
-        <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #fff; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+        <div style="width: 90%; max-width: 400px; margin: 0 auto; padding: 30px; background-color: #fff; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
           
           <!-- Logo -->
           <div style="text-align: center; margin-bottom: 20px;">
-            <img src="https://i.postimg.cc/JzdQzfjq/Flx-Book-logo.png" alt="FlxBook Logo" style="width: 150px;" />
+            <img src="https://i.ibb.co.com/zHrqF4d7/Screenshot-2026-04-11-165229.png" alt="FlxBook Logo" style="width: 150px;" />
           </div>
 
           <!-- Greeting -->
@@ -91,9 +94,25 @@ const eventInvitation = (values: IEventInvitation) => {
           <!-- Event Details -->
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
             <h3 style="color: #3389d0; font-size: 20px; margin-bottom: 15px; text-align: center;">${values.eventName}</h3>
-            ${values.eventDescription ? `<p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 10px;">${values.eventDescription}</p>` : ''}
-            ${values.eventDate ? `<p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 5px;"><strong>Date:</strong> ${new Date(values.eventDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>` : ''}
-            ${values.eventLocation ? `<p style="color: #555; font-size: 14px; line-height: 1.5;"><strong>Location:</strong> ${values.eventLocation}</p>` : ''}
+            ${values.eventDescription ? `<p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 10px;">${values.eventDescription}</p>` : ""}
+       ${
+         values.eventDate
+           ? `<p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 5px;">
+<strong>Date & Time:</strong> 
+${new Date(values.eventDate).toLocaleString("en-US", {
+  weekday: "long",
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "America/New_York", // ✅ FIX
+  timeZoneName: "short",
+})}
+</p>`
+           : ""
+       }
+            ${values.eventLocation ? `<p style="color: #555; font-size: 14px; line-height: 1.5;"><strong>Location:</strong> ${values.eventLocation}</p>` : ""}
           </div>
 
           <!-- Call to Action -->
@@ -108,12 +127,12 @@ const eventInvitation = (values: IEventInvitation) => {
         </div>
       </body>
     `,
-    };
-    return data;
-}; 
+  };
+  return data;
+};
 
 export const emailTemplate = {
-    createAccount,
-    resetPassword,
-    eventInvitation,
+  createAccount,
+  resetPassword,
+  eventInvitation,
 };

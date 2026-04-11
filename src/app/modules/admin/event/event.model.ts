@@ -26,7 +26,7 @@ const eventSchema = new Schema<IEvent>({
     },
     type: {
         type: String,
-        enum: ['webinar', 'workshop', 'seminar', 'conference'],
+        enum: ['webinar', 'workshop', 'seminar', 'conference','all'],
         required: [true, "Event type is required"]
     },
 
