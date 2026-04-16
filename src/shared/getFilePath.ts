@@ -1,4 +1,4 @@
-type IFolderName = 'image' | 'media' | 'doc' | 'tradeLicences' | 'proofOwnerId' | 'sallonPhoto' | 'attachment';
+type IFolderName = 'image' | 'media' | 'doc' | 'tradeLicences' | 'proofOwnerId' | 'sallonPhoto' | 'attachment' | 'file';
 
 
 

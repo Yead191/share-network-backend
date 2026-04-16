@@ -14,6 +14,14 @@ const classSchema = new Schema<IClass, ClassModel>(
       ref: 'User',
       required: false,
     }],
+    file: {
+      type: String,
+      required: false,
+    },
+    slideUrl: {
+      type: String,
+      required: false,
+    },
     title: {
       type: String,
       required: true,

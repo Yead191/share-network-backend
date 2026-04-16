@@ -9,6 +9,8 @@ export type IClass = {
   classDate: Date;
   location: string;
   virtualClass: boolean;
+  file: string;
+  slideUrl: string;
   published: boolean;
   status: boolean;
   userGroup: Types.ObjectId[];

@@ -25,6 +25,7 @@ const createClassToDB = async (payload: IClass) => {
 
 
   const populated = await Class.findById(result._id)
+    .select('file title description classDate location virtualClass status published userGroup userGroupTrack studentId teacher')
     .populate({
       path: 'teacher',
       select: 'firstName lastName email profile',
@@ -229,21 +230,15 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
   const today = dayjs().startOf('day'); // Start of today
   const todayDate = today.toDate(); // Convert to Date for MongoDB
 
-  console.log('Filter type:', queryData.filterType);
-  console.log('Today date for comparison:', todayDate);
-  console.log('Today formatted:', today.format('YYYY-MM-DD'));
-
   if (queryData.filterType) {
     if (queryData.filterType === 'upcoming') {
       // Show classes from today onwards (today, tomorrow, future dates)
       filterConditions.classDate = { $gte: todayDate };
       queryData.sort = 'classDate'; // Show in chronological order (today first, then future)
-      console.log('Upcoming filter applied:', filterConditions);
     } else if (queryData.filterType === 'completed') {
       // Show classes with dates before today in serial order
       filterConditions.classDate = { $lt: todayDate };
       queryData.sort = '-classDate'; // Show in reverse chronological order (most recent first)
-      console.log('Completed filter applied:', filterConditions);
     }
     delete queryData.filterType;
   }
@@ -322,6 +317,7 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
   }
 
   const classes = await result.queryModel
+    .select('file title description classDate location virtualClass status published userGroup userGroupTrack studentId teacher slideUrl')
     .populate({ path: 'userGroup', select: 'name' })
     .populate({ path: 'userGroupTrack', select: 'name' })
     .populate({ path: 'studentId', select: 'firstName lastName email profile', model: 'User' })
@@ -332,6 +328,7 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
 };
 const getClassByIdFromDB = async (id: string) => {
   const result = await Class.findById(id)
+    .select('file title description classDate location virtualClass status published userGroup userGroupTrack studentId teacher slideUrl')
     .populate("userGroup")
     .populate("userGroupTrack");
   if (!result) {

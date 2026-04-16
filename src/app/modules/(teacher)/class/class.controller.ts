@@ -3,11 +3,16 @@ import { StatusCodes } from 'http-status-codes';
 import catchAsync from '../../../../shared/catchAsync';
 import sendResponse from '../../../../shared/sendResponse';
 import { ClassService } from './class.service';
+import { getSingleFilePath } from '../../../../shared/getFilePath';
 
 const createClass = catchAsync(async (req: Request, res: Response) => {
+
+  const file = getSingleFilePath(req.files, 'file');
   const { ...classData } = req.body;
   const teacherId = req.user?.id;
   classData.teacher = teacherId;
+  classData.file = file;
+
   const result = await ClassService.createClassToDB(classData);
 
   sendResponse(res, {
@@ -46,6 +51,10 @@ const getClassById = catchAsync(async (req: Request, res: Response) => {
 const updateClass = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const { ...updateData } = req.body;
+
+  const file = getSingleFilePath(req.files, 'file');
+  updateData.file = file;
+  
   const { message, result } = await ClassService.updateClassToDB(id, updateData);
 
   sendResponse(res, {
