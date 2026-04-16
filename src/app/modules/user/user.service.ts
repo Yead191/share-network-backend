@@ -148,9 +148,7 @@ const updateprofileByIdToDB = async (
       payload.userGroupTrack = null as any;
     }
   }
-  
-  console.log('called', payload)
-  const result = await User.findByIdAndUpdate(id, payload, { new: true });
+    const result = await User.findByIdAndUpdate(id, payload, { new: true });
   return result;
 };
 
