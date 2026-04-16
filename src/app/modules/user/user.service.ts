@@ -14,6 +14,7 @@ import { formatPhoneNumber } from "../../../helpers/formatedPhoneNumber";
 import { AppError } from "../../../errors/error.app";
 import path from 'path';
 import { Types } from "mongoose";
+import { UserGroupTrack } from "../user-group/user-group-track/user-group-track.model";
 
 const createAdminToDB = async (payload: any): Promise<IUser> => {
 
@@ -50,7 +51,17 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
   };
   console.log('Generated OTP:', otp); 
   const createAccountTemplate = emailTemplate.createAccount(values);
-  emailHelper.sendEmail(createAccountTemplate);
+  
+  // Send email in background process to prevent crashes
+  setImmediate(async () => {
+    try {
+      await emailHelper.sendEmail(createAccountTemplate);
+      console.log('Email sent successfully to:', createUser.email);
+    } catch (emailError) {
+      console.error('Email sending failed in background process:', emailError);
+      // Don't throw - just log the error
+    }
+  });
 
   const authentication = {
     oneTimeCode: otp,
@@ -70,6 +81,7 @@ const updateProfileToDB = async (
   user: JwtPayload,
   payload: Partial<IUser>
 ): Promise<Partial<IUser | null>> => {
+
   const { id } = user;
 
   const existingUser = await User.isExistUserById(id);
@@ -128,6 +140,16 @@ const updateprofileByIdToDB = async (
   id: string,
   payload: Partial<IUser>
 ): Promise<Partial<IUser | null>> => {
+
+  
+  if(payload.userGroup){
+    const isUserGroupTrackExist = await UserGroupTrack.findOne({ userGroup: payload.userGroup });
+    if(!isUserGroupTrackExist){
+      payload.userGroupTrack = null as any;
+    }
+  }
+  
+  console.log('called', payload)
   const result = await User.findByIdAndUpdate(id, payload, { new: true });
   return result;
 };
