@@ -42,16 +42,17 @@ search(searchableFields: string[]) {
   //   this.queryModel = this.queryModel.find(JSON.parse(queryStr));
   //   return this;
   // }
-  filter() {
+  filter(ignoredFields: string[] = []) {
   const queryCopy = { ...this.query };
   
   // Add userGroup and userGroupTrack here so filter() ignores them
-  const removeFields = ["searchTerm", "page", "limit", "sort", "userGroup", "userGroupTrack"];
+  const removeFields = ["searchTerm", "page", "limit", "sort", "userGroup", "userGroupTrack", ...ignoredFields];
   removeFields.forEach((field) => delete queryCopy[field]);
   
   let queryStr = JSON.stringify(queryCopy);
   queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, (match) => `$${match}`);
   this.queryModel = this.queryModel.find(JSON.parse(queryStr));
+  console.log("queryStr", queryStr);
   return this;
 }
 
