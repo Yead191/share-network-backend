@@ -63,12 +63,13 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (values: ISendEmail) => {
   try {
-    await transporter.sendMail({
+   const result = await transporter.sendMail({
       from: `"Share Network App" <${config.email.from}>`,
       to: values.to,
       subject: values.subject,
       html: values.html,
     });
+    console.log("Email sent successfully", result);
   } catch (error) {
     console.log("Email->sendEmail", error);
   }
