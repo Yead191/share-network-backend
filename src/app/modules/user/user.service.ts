@@ -52,16 +52,25 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
     otp: otp,
     email: createUser.email!,
   };
+  console.log("Generated OTP:", otp);
   const createAccountTemplate = emailTemplate.createAccount(values);
 
   // Send email in background process to prevent crashes
-
-  emailHelper.sendEmail(createAccountTemplate);
+  setImmediate(async () => {
+    try {
+      await emailHelper.sendEmail(createAccountTemplate);
+      console.log("Email sent successfully to:", createUser.email);
+    } catch (emailError) {
+      console.error("Email sending failed in background process:", emailError);
+      // Don't throw - just log the error
+    }
+  });
 
   const authentication = {
     oneTimeCode: otp,
     expireAt: new Date(Date.now() + 3 * 60000),
   };
+  console.log("Saving OTP to database:", authentication);
   await User.findOneAndUpdate(
     { _id: createUser._id },
     { $set: { authentication } },
@@ -156,53 +165,33 @@ const getProfileFromDB = async (
   const { id } = user;
 
   const existingUser = await User.findById(id)
-    .populate(
-      "mentorId",
-      "firstName lastName email profile contact location professionalTitle highestEducation havealaptop company jobTitle preferedGroup aviliableHours motivationLearning readBooks note careerDirections userGroup linkedInProfile githubProfile PortfolioWebsite PortfolioWebsite",
-    )
+    .populate("mentorId")
     .populate({
       path: "assignedMentors",
       model: "User",
-      select:
-        "firstName lastName email profile contact location professionalTitle highestEducation havealaptop company jobTitle preferedGroup aviliableHours motivationLearning readBooks note careerDirections userGroup linkedInProfile githubProfile PortfolioWebsite PortfolioWebsite assignedStudents",
-      populate: {
-        path: "assignedStudents",
-        select:
-          "firstName lastName email profile contact location classId woop Goals review Onboarding",
-        populate: [
-          { path: "classId" },
-          {
-            path: "review.teacherId",
-            select: "firstName lastName profile email",
-          },
-          {
-            path: "Goals",
-            model: "Goal",
-          },
-          {
-            path: "Onboarding",
-            model: "Onboarding",
-          },
-        ],
-      },
+      populate: [
+        {
+          path: "userGroup",
+        },
+        { path: "userGroupTrack" },
+        {
+          path: "assignedStudents",
+          populate: [
+            { path: "userGroup", select: "-description" },
+            { path: "userGroupTrack" },
+            { path: "classId" },
+            { path: "review.teacherId" },
+            { path: "Goals", model: "Goal" },
+            { path: "Onboarding", model: "Onboarding" },
+          ],
+        },
+      ],
     })
     .populate({
       path: "assignedStudents",
-      select: `
-        firstName 
-        lastName 
-        profile 
-        email 
-        contactNumber 
-        about 
-        location 
-        classId 
-        woop 
-        Goals 
-        review 
-        Onboarding
-      `,
       populate: [
+        { path: "userGroup", select: "-description" },
+        { path: "userGroupTrack" },
         { path: "classId" },
         {
           path: "review.teacherId",
@@ -225,13 +214,10 @@ const getProfileFromDB = async (
       },
     })
     .populate("Goals", "title index description")
-    .populate("userGroup", "name description")
-    .populate("userGroupTrack", "name")
+    .populate("userGroup")
+    .populate("userGroupTrack")
     .populate("Onboarding")
-    .populate(
-      "classId",
-      "title description classDate location virtualClass published status userGroup userGroupTrack",
-    )
+    .populate("classId")
     .lean();
 
   if (!existingUser) {
