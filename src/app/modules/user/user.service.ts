@@ -58,13 +58,11 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
   // Send email in background process to prevent crashes
 
   emailHelper.sendEmail(createAccountTemplate);
-  console.log("Email sent successfully to:", createUser.email);
 
   const authentication = {
     oneTimeCode: otp,
     expireAt: new Date(Date.now() + 3 * 60000),
   };
-  console.log("Saving OTP to database:", authentication);
   await User.findOneAndUpdate(
     { _id: createUser._id },
     { $set: { authentication } },

@@ -52,7 +52,6 @@ const transporter = nodemailer.createTransport({
   host: config.email.host,
   port: Number(config.email.port),
   secure: false,
-  requireTLS: true,
   auth: {
     user: config.email.user,
     pass: config.email.pass,
@@ -64,16 +63,14 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (values: ISendEmail) => {
   try {
-    const info = await transporter.sendMail({
+    await transporter.sendMail({
       from: `"Share Network App" <${config.email.from}>`,
       to: values.to,
       subject: values.subject,
       html: values.html,
     });
-
-    logger.info('Mail send successfully', info.accepted);
   } catch (error) {
-    errorLogger.error('Email', error);
+    errorLogger.error("Email->sendEmail", error);
   }
 };
 
