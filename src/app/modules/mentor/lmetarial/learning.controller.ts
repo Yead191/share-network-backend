@@ -90,10 +90,20 @@ const deleteResource = catchAsync(async (req, res) => {
 });
 
 
+const getAllMentorResources = catchAsync(async (req, res) => {
+    const resources = await LearningMaterialService.getAllMentorResources(req.query, req.user.id);
+    res.status(200).json({
+        success: true,
+        data: resources,
+    });
+});
+
+
 export const mentorLearningMaterial = {
     createResource,
     getCreatedByResources,
     getAllResources,
+    getAllMentorResources,
     getResourceById,
     updateResource,
     deleteResource,

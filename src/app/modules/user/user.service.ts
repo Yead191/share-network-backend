@@ -157,38 +157,62 @@ const getProfileFromDB = async (user: JwtPayload): Promise<Partial<IUser | null>
 
   const existingUser = await User.findById(id)
     .populate('mentorId', 'firstName lastName email profile contact location professionalTitle highestEducation havealaptop company jobTitle preferedGroup aviliableHours motivationLearning readBooks note careerDirections userGroup linkedInProfile githubProfile PortfolioWebsite PortfolioWebsite')
-.populate({
-  path: 'assignedStudents',
-  select: `
-    firstName 
-    lastName 
-    profile 
-    email 
-    contactNumber 
-    about 
-    location 
-    classId 
-    woop 
-    Goals 
-    review 
-    Onboarding
-  `,
-  populate: [
-    { path: 'classId' },
-    {
-      path: 'review.teacherId',
-      select: 'firstName lastName profile email'
-    },
-    {
-      path: 'Goals',
-      model: 'Goal'
-    },
-    {
-      path: 'Onboarding',
-      model: 'Onboarding' 
-    }
-  ]
-})
+    .populate({
+      path: 'assignedMentors',
+      model: 'User',
+      select: 'firstName lastName email profile contact location professionalTitle highestEducation havealaptop company jobTitle preferedGroup aviliableHours motivationLearning readBooks note careerDirections userGroup linkedInProfile githubProfile PortfolioWebsite PortfolioWebsite assignedStudents',
+      populate: {
+        path: 'assignedStudents',
+        select: 'firstName lastName email profile contact location classId woop Goals review Onboarding',
+        populate: [
+          { path: 'classId' },
+          {
+            path: 'review.teacherId',
+            select: 'firstName lastName profile email'
+          },
+          {
+            path: 'Goals',
+            model: 'Goal'
+          },
+          {
+            path: 'Onboarding',
+            model: 'Onboarding' 
+          }
+        ]
+      }
+    })
+    .populate({
+      path: 'assignedStudents',
+      select: `
+        firstName 
+        lastName 
+        profile 
+        email 
+        contactNumber 
+        about 
+        location 
+        classId 
+        woop 
+        Goals 
+        review 
+        Onboarding
+      `,
+      populate: [
+        { path: 'classId' },
+        {
+          path: 'review.teacherId',
+          select: 'firstName lastName profile email'
+        },
+        {
+          path: 'Goals',
+          model: 'Goal'
+        },
+        {
+          path: 'Onboarding',
+          model: 'Onboarding' 
+        }
+      ]
+    })
     .populate({
       path: 'woop',
       populate: {

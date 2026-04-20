@@ -19,6 +19,12 @@ router.route("/")
         mentorLearningMaterial.getAllResources
     );
 
+router.route("/all")
+    .get(
+        auth(USER_ROLES.MENTOR, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT , USER_ROLES.COORDINATOR),
+        mentorLearningMaterial.getAllMentorResources
+    );
+
 router.route("/:id")
     .get(
         auth(USER_ROLES.MENTOR, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.TEACHER, USER_ROLES.COORDINATOR),

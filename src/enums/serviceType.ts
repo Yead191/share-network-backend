@@ -3,5 +3,8 @@ export enum ResourceType {
    DOCX = "DOCX",
    VIDEO = "VIDEO",
    AUDIO = "AUDIO",
-   LINK = "LINK"
+   LINK = "LINK",
+   LECTURE = "LECTURE",
+   SLIDES = "SLIDES",
+   MATERIAL = "MATERIAL"
 }

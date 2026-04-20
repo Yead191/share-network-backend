@@ -162,6 +162,7 @@ const getAllMentorResourcesFromDB = async (
   const safeQuery = query || {};
   
   const searchableFields = ["title", "description", "type", "contentUrl"];
+  console.log("safeQuery--", safeQuery);
 
   if (safeQuery.targeteAudience === "STUDENT" && userId) {
     const student = await User.findById(userId)
@@ -298,6 +299,44 @@ const deleteResourceFromDB = async (id: string) => {
   }
 };
 
+
+
+const getAllMentorResources = async (
+  query?: Record<string, any>,
+  userId?: string,
+) => {
+  const safeQuery = query || {};
+  
+  const searchableFields = ["title", "description", "type", "contentUrl"];
+
+  // Handle targertGroup filter for general queries
+  let baseFilter = {};
+  if (safeQuery.targertGroup) {
+    const groupIds = Array.isArray(safeQuery.targertGroup) 
+      ? safeQuery.targertGroup 
+      : [safeQuery.targertGroup];
+    
+    baseFilter = { targertGroup: { $in: groupIds.map(id => new Types.ObjectId(id)) } };
+  }
+
+  const qb = new QueryBuilder(LearningMaterial.find(baseFilter), safeQuery)
+    .search(searchableFields)
+    .filter(["targertGroup"])
+    .sort()
+    .paginate();
+
+  const resources = await qb.queryModel
+    .populate({
+      path: "createdBy",
+      select: "firstName lastName email profile contact location",
+    })
+    .populate({ path: "targertGroup", select: "name description" })
+    .populate({ path: "targetTrack", select: "name description" })
+    .exec();
+
+  const pagination = await qb.getPaginationInfo();
+  return { resources, pagination };
+};
 export const LearningMaterialService = {
   createResourceFromDB,
   getCreatedByResourcesFromDB,
@@ -306,4 +345,5 @@ export const LearningMaterialService = {
   updateResourceFromDB,
   deleteResourceFromDB,
   getFilteredResourcesFromDB,
+  getAllMentorResources
 };
