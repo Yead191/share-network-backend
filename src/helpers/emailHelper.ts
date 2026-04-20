@@ -70,7 +70,7 @@ const sendEmail = async (values: ISendEmail) => {
       html: values.html,
     });
   } catch (error) {
-    errorLogger.error("Email->sendEmail", error);
+    console.log("Email->sendEmail", error);
   }
 };
 
