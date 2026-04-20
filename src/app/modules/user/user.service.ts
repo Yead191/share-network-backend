@@ -52,7 +52,6 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
     otp: otp,
     email: createUser.email!,
   };
-  console.log("Generated OTP:", otp);
   const createAccountTemplate = emailTemplate.createAccount(values);
 
   // Send email in background process to prevent crashes

@@ -3,7 +3,6 @@
 // import { errorLogger, logger } from '../shared/logger';
 // import { ISendEmail } from '../types/email';
 
-
 // const transporter = nodemailer.createTransport({
 //   host: process.env.EMAIL_HOST,
 //   port: parseInt(process.env.EMAIL_PORT || '587'),
@@ -13,9 +12,9 @@
 //     pass: process.env.EMAIL_PASS
 //   },
 //   tls: {
-//     rejectUnauthorized: false 
+//     rejectUnauthorized: false
 //   },
-//   connectionTimeout: 20000, 
+//   connectionTimeout: 20000,
 //   greetingTimeout: 20000,
 //   socketTimeout: 20000,
 // });
@@ -35,23 +34,21 @@
 //     sendEmail
 // };
 
-
 // // EMAIL_FROM=abdullaalnuman129@gmail.com
 // // EMAIL_USER=abdullaalnuman129@gmail.com
 // // EMAIL_PASS=nbezwqzcdjvfndyo
 // // EMAIL_PORT=587
 // // EMAIL_HOST=smtp.gmail.com
 
-
-import nodemailer from 'nodemailer';
-import config from '../config';
-import { errorLogger, logger } from '../shared/logger';
-import { ISendEmail } from '../types/email';
+import nodemailer from "nodemailer";
+import config from "../config";
+import { errorLogger, logger } from "../shared/logger";
+import { ISendEmail } from "../types/email";
 
 const transporter = nodemailer.createTransport({
   host: config.email.host,
   port: Number(config.email.port),
-  secure: false,
+  secure: true,
   auth: {
     user: config.email.user,
     pass: config.email.pass,
@@ -63,7 +60,7 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (values: ISendEmail) => {
   try {
-   const result = await transporter.sendMail({
+    const result = await transporter.sendMail({
       from: `"Share Network App" <${config.email.from}>`,
       to: values.to,
       subject: values.subject,
