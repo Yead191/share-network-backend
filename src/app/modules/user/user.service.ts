@@ -1,6 +1,6 @@
 import { USER_ROLES } from "../../../enums/user";
 import { IUser } from "./user.interface";
-import { JwtPayload } from 'jsonwebtoken';
+import { JwtPayload } from "jsonwebtoken";
 import { User } from "./user.model";
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../../errors/ApiError";
@@ -12,14 +12,13 @@ import { Reservation } from "../reservation/reservation.model";
 import { sendTwilioOTP } from "../../../helpers/twillo";
 import { formatPhoneNumber } from "../../../helpers/formatedPhoneNumber";
 import { AppError } from "../../../errors/error.app";
-import path from 'path';
+import path from "path";
 import { Types } from "mongoose";
 import { UserGroupTrack } from "../user-group/user-group-track/user-group-track.model";
 
 const createAdminToDB = async (payload: any): Promise<IUser> => {
-
   // check admin is exist or not;
-  const isExistAdmin = await User.findOne({ email: payload.email })
+  const isExistAdmin = await User.findOne({ email: payload.email });
   if (isExistAdmin) {
     throw new ApiError(StatusCodes.CONFLICT, "This Email already taken");
   }
@@ -27,61 +26,57 @@ const createAdminToDB = async (payload: any): Promise<IUser> => {
   // create admin to db
   const createAdmin = await User.create(payload);
   if (!createAdmin) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create Admin');
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Failed to create Admin");
   } else {
-    await User.findByIdAndUpdate({ _id: createAdmin?._id }, { verified: true, status: 'ACTIVE' }, { new: true });
+    await User.findByIdAndUpdate(
+      { _id: createAdmin?._id },
+      { verified: true, status: "ACTIVE" },
+      { new: true },
+    );
   }
 
   return createAdmin;
-}
+};
 
 const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
   const createUser = await User.create(payload);
   if (!createUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create user');
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Failed to create user");
   }
 
   console.log(createUser);
 
-  const otp = generateOTP(); 
+  const otp = generateOTP();
   const values = {
     name: createUser.name,
     otp: otp,
-    email: createUser.email!
+    email: createUser.email!,
   };
-  console.log('Generated OTP:', otp); 
+  console.log("Generated OTP:", otp);
   const createAccountTemplate = emailTemplate.createAccount(values);
-  
+
   // Send email in background process to prevent crashes
-  setImmediate(async () => {
-    try {
-      await emailHelper.sendEmail(createAccountTemplate);
-      console.log('Email sent successfully to:', createUser.email);
-    } catch (emailError) {
-      console.error('Email sending failed in background process:', emailError);
-      // Don't throw - just log the error
-    }
-  });
+
+  emailHelper.sendEmail(createAccountTemplate);
+  console.log("Email sent successfully to:", createUser.email);
 
   const authentication = {
     oneTimeCode: otp,
-    expireAt: new Date(Date.now() + 3 * 60000), 
+    expireAt: new Date(Date.now() + 3 * 60000),
   };
-  console.log('Saving OTP to database:', authentication);  
+  console.log("Saving OTP to database:", authentication);
   await User.findOneAndUpdate(
     { _id: createUser._id },
-    { $set: { authentication } }
+    { $set: { authentication } },
   );
 
   return createUser;
 };
 
-
 const updateProfileToDB = async (
   user: JwtPayload,
-  payload: Partial<IUser>
+  payload: Partial<IUser>,
 ): Promise<Partial<IUser | null>> => {
-
   const { id } = user;
 
   const existingUser = await User.isExistUserById(id);
@@ -89,8 +84,13 @@ const updateProfileToDB = async (
     throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
 
-  const fileFields = ['profile', 'tradeLicences', 'sallonPhoto', 'proofOwnerId'];
-  console.log('Existing user data before update:', existingUser);
+  const fileFields = [
+    "profile",
+    "tradeLicences",
+    "sallonPhoto",
+    "proofOwnerId",
+  ];
+  console.log("Existing user data before update:", existingUser);
   for (const field of fileFields) {
     if (payload[field as keyof IUser] && existingUser[field as keyof IUser]) {
       try {
@@ -115,17 +115,19 @@ const updateProfileToDB = async (
   return userWithoutPassword;
 };
 
-const updateLocationToDB = async (user: JwtPayload, payload: { longitude: number; latitude: number }): Promise<IUser | null> => {
-
+const updateLocationToDB = async (
+  user: JwtPayload,
+  payload: { longitude: number; latitude: number },
+): Promise<IUser | null> => {
   const result = await User.findByIdAndUpdate(
     user.id,
     {
       $set: {
         "location.type": "Point",
-        "location.coordinates": [payload.longitude, payload.latitude]
-      }
+        "location.coordinates": [payload.longitude, payload.latitude],
+      },
     },
-    { new: true }
+    { new: true },
   );
 
   if (!result) {
@@ -135,54 +137,60 @@ const updateLocationToDB = async (user: JwtPayload, payload: { longitude: number
   return result;
 };
 
-
 const updateprofileByIdToDB = async (
   id: string,
-  payload: Partial<IUser>
+  payload: Partial<IUser>,
 ): Promise<Partial<IUser | null>> => {
-
-  
-  if(payload.userGroup){
-    const isUserGroupTrackExist = await UserGroupTrack.findOne({ userGroup: payload.userGroup });
-    if(!isUserGroupTrackExist){
+  if (payload.userGroup) {
+    const isUserGroupTrackExist = await UserGroupTrack.findOne({
+      userGroup: payload.userGroup,
+    });
+    if (!isUserGroupTrackExist) {
       payload.userGroupTrack = null as any;
     }
   }
-    const result = await User.findByIdAndUpdate(id, payload, { new: true });
+  const result = await User.findByIdAndUpdate(id, payload, { new: true });
   return result;
 };
 
-const getProfileFromDB = async (user: JwtPayload): Promise<Partial<IUser | null>> => {
+const getProfileFromDB = async (
+  user: JwtPayload,
+): Promise<Partial<IUser | null>> => {
   const { id } = user;
 
   const existingUser = await User.findById(id)
-    .populate('mentorId', 'firstName lastName email profile contact location professionalTitle highestEducation havealaptop company jobTitle preferedGroup aviliableHours motivationLearning readBooks note careerDirections userGroup linkedInProfile githubProfile PortfolioWebsite PortfolioWebsite')
+    .populate(
+      "mentorId",
+      "firstName lastName email profile contact location professionalTitle highestEducation havealaptop company jobTitle preferedGroup aviliableHours motivationLearning readBooks note careerDirections userGroup linkedInProfile githubProfile PortfolioWebsite PortfolioWebsite",
+    )
     .populate({
-      path: 'assignedMentors',
-      model: 'User',
-      select: 'firstName lastName email profile contact location professionalTitle highestEducation havealaptop company jobTitle preferedGroup aviliableHours motivationLearning readBooks note careerDirections userGroup linkedInProfile githubProfile PortfolioWebsite PortfolioWebsite assignedStudents',
+      path: "assignedMentors",
+      model: "User",
+      select:
+        "firstName lastName email profile contact location professionalTitle highestEducation havealaptop company jobTitle preferedGroup aviliableHours motivationLearning readBooks note careerDirections userGroup linkedInProfile githubProfile PortfolioWebsite PortfolioWebsite assignedStudents",
       populate: {
-        path: 'assignedStudents',
-        select: 'firstName lastName email profile contact location classId woop Goals review Onboarding',
+        path: "assignedStudents",
+        select:
+          "firstName lastName email profile contact location classId woop Goals review Onboarding",
         populate: [
-          { path: 'classId' },
+          { path: "classId" },
           {
-            path: 'review.teacherId',
-            select: 'firstName lastName profile email'
+            path: "review.teacherId",
+            select: "firstName lastName profile email",
           },
           {
-            path: 'Goals',
-            model: 'Goal'
+            path: "Goals",
+            model: "Goal",
           },
           {
-            path: 'Onboarding',
-            model: 'Onboarding' 
-          }
-        ]
-      }
+            path: "Onboarding",
+            model: "Onboarding",
+          },
+        ],
+      },
     })
     .populate({
-      path: 'assignedStudents',
+      path: "assignedStudents",
       select: `
         firstName 
         lastName 
@@ -198,32 +206,35 @@ const getProfileFromDB = async (user: JwtPayload): Promise<Partial<IUser | null>
         Onboarding
       `,
       populate: [
-        { path: 'classId' },
+        { path: "classId" },
         {
-          path: 'review.teacherId',
-          select: 'firstName lastName profile email'
+          path: "review.teacherId",
+          select: "firstName lastName profile email",
         },
         {
-          path: 'Goals',
-          model: 'Goal'
+          path: "Goals",
+          model: "Goal",
         },
         {
-          path: 'Onboarding',
-          model: 'Onboarding' 
-        }
-      ]
+          path: "Onboarding",
+          model: "Onboarding",
+        },
+      ],
     })
     .populate({
-      path: 'woop',
+      path: "woop",
       populate: {
-        path: 'goal',
-      }
+        path: "goal",
+      },
     })
-    .populate('Goals', 'title index description')
-    .populate('userGroup', 'name description')
-    .populate('userGroupTrack', 'name')
-    .populate('Onboarding')
-    .populate('classId', 'title description classDate location virtualClass published status userGroup userGroupTrack')
+    .populate("Goals", "title index description")
+    .populate("userGroup", "name description")
+    .populate("userGroupTrack", "name")
+    .populate("Onboarding")
+    .populate(
+      "classId",
+      "title description classDate location virtualClass published status userGroup userGroupTrack",
+    )
     .lean();
 
   if (!existingUser) {
@@ -234,16 +245,14 @@ const getProfileFromDB = async (user: JwtPayload): Promise<Partial<IUser | null>
 };
 
 const getStudentsFromDB = async (mentorId: string) => {
-  const result = await User.find({ mentorId, role: USER_ROLES.STUDENT })
-    .populate('mentorId', 'firstName lastName email profile contact location');
-  
+  const result = await User.find({
+    mentorId,
+    role: USER_ROLES.STUDENT,
+  }).populate("mentorId", "firstName lastName email profile contact location");
+
   return result;
 };
-const removeAssignedFromDB = async (
-  mentorId: string,
-  studentId: string
-) => {
-
+const removeAssignedFromDB = async (mentorId: string, studentId: string) => {
   const mentor = await User.findById(mentorId);
 
   if (!mentor) {
@@ -255,7 +264,7 @@ const removeAssignedFromDB = async (
     {
       $pull: { assignedStudents: new Types.ObjectId(studentId) },
     },
-    { new: true }
+    { new: true },
   );
 
   return updatedMentor;
@@ -268,11 +277,10 @@ const updateActivityFromDB = async (userId: string) => {
       isOnline: true,
       lastSeen: new Date(),
     },
-    { new: true }
+    { new: true },
   );
   return result;
 };
-
 
 export const UserService = {
   createUserToDB,
@@ -283,5 +291,5 @@ export const UserService = {
   updateprofileByIdToDB,
   getStudentsFromDB,
   removeAssignedFromDB,
-  updateActivityFromDB
+  updateActivityFromDB,
 };
