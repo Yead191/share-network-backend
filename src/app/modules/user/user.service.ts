@@ -39,42 +39,13 @@ const createAdminToDB = async (payload: any): Promise<IUser> => {
 };
 
 const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
+  payload.verified =true
   const createUser = await User.create(payload);
   if (!createUser) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Failed to create user");
   }
 
-  console.log(createUser);
 
-  const otp = generateOTP();
-  const values = {
-    name: createUser.name,
-    otp: otp,
-    email: createUser.email!,
-  };
-  console.log("Generated OTP:", otp);
-  const createAccountTemplate = emailTemplate.createAccount(values);
-
-  // Send email in background process to prevent crashes
-  setImmediate(async () => {
-    try {
-      await emailHelper.sendEmail(createAccountTemplate);
-      console.log("Email sent successfully to:", createUser.email);
-    } catch (emailError) {
-      console.error("Email sending failed in background process:", emailError);
-      // Don't throw - just log the error
-    }
-  });
-
-  const authentication = {
-    oneTimeCode: otp,
-    expireAt: new Date(Date.now() + 3 * 60000),
-  };
-  console.log("Saving OTP to database:", authentication);
-  await User.findOneAndUpdate(
-    { _id: createUser._id },
-    { $set: { authentication } },
-  );
 
   return createUser;
 };
