@@ -25,10 +25,16 @@ const learningMaterialSchema = new Schema<ILearningMaterial>({
         }
     ],
     targetTrack: { type: Schema.Types.ObjectId, ref: 'UserGroupTrack', required: false },
+    // targeteAudience: {
+    //     type: String,
+    //     enum: Object.values(USER_ROLES),
+    //     default: USER_ROLES.STUDENT,
+    //     required: true
+    // },
     targeteAudience: {
-        type: String,
+        type: [String],
         enum: Object.values(USER_ROLES),
-        default: USER_ROLES.STUDENT,
+        default: [USER_ROLES.STUDENT],
         required: true
     },
 

@@ -45,8 +45,6 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Failed to create user");
   }
 
-
-
   return createUser;
 };
 

@@ -26,7 +26,7 @@ const createResourceFromDB = async (payload: ILearningMaterial) => {
         sendNotifications({
           text: baseText,
           receiver: receiver._id,
-          type: resource.targeteAudience === "MENTOR" ? "MENTOR" : "STUDENT",
+          type: resource.targeteAudience.includes("MENTOR") ? "MENTOR" : "STUDENT",
         }),
       ),
     );
@@ -155,6 +155,84 @@ const getResourceByIdFromDB = async (id: string) => {
   return resource;
 };
 
+// const getAllMentorResourcesFromDB = async (
+//   query?: Record<string, any>,
+//   userId?: string,
+// ) => {
+//   const safeQuery = query || {};
+  
+//   const searchableFields = ["title", "description", "type", "contentUrl"];
+//   console.log("safeQuery--", safeQuery);
+
+//   if (safeQuery.targeteAudience === "STUDENT" && userId) {
+//     const student = await User.findById(userId)
+//       .select("userGroup")
+//       .select("targetTrack")
+//       .lean();
+//     const studentGroupIds = student?.userGroup || [];
+//     const studentTrackIds = student?.targetTrack || [];
+
+//     const filterCondition = {
+//       targeteAudience: "STUDENT",
+//       $or: [
+//         { targertGroup: { $in: studentGroupIds } },
+//         { targertGroup: null },
+//         { targertGroup: { $exists: false } },
+//         { targetTrack: { $in: studentTrackIds } },
+//       ],
+//     };
+
+//     delete safeQuery.targeteAudience;
+//     const qb = new QueryBuilder(
+//       LearningMaterial.find(filterCondition),
+//       safeQuery,
+//     )
+//       .search(searchableFields)
+//       .sort()
+//       .paginate();
+
+//     const resources = await qb.queryModel
+//       .populate({
+//         path: "createdBy",
+//         select: "firstName lastName email profile contact location",
+//       })
+//       .populate({ path: "targertGroup", select: "name description" })
+//       .populate({ path: "targetTrack", select: "name description" })
+//       .exec();
+
+//     const pagination = await qb.getPaginationInfo();
+//     return { resources, pagination };
+//   }
+
+//   // Handle targertGroup filter for general queries
+//   let baseFilter = {};
+//   if (safeQuery.targertGroup) {
+//     const groupIds = Array.isArray(safeQuery.targertGroup) 
+//       ? safeQuery.targertGroup 
+//       : [safeQuery.targertGroup];
+    
+//     baseFilter = { targertGroup: { $in: groupIds.map(id => new Types.ObjectId(id)) } };
+//   }
+
+//   const qb = new QueryBuilder(LearningMaterial.find(baseFilter), safeQuery)
+//     .search(searchableFields)
+//     .filter(["targertGroup"])
+//     .sort()
+//     .paginate();
+
+//   const resources = await qb.queryModel
+//     .populate({
+//       path: "createdBy",
+//       select: "firstName lastName email profile contact location",
+//     })
+//     .populate({ path: "targertGroup", select: "name description" })
+//     .populate({ path: "targetTrack", select: "name description" })
+//     .exec();
+
+//   const pagination = await qb.getPaginationInfo();
+//   return { resources, pagination };
+// };
+
 const getAllMentorResourcesFromDB = async (
   query?: Record<string, any>,
   userId?: string,
@@ -164,7 +242,7 @@ const getAllMentorResourcesFromDB = async (
   const searchableFields = ["title", "description", "type", "contentUrl"];
   console.log("safeQuery--", safeQuery);
 
-  if (safeQuery.targeteAudience === "STUDENT" && userId) {
+  if (safeQuery.targeteAudience?.includes("STUDENT") && userId) {
     const student = await User.findById(userId)
       .select("userGroup")
       .select("targetTrack")
@@ -173,7 +251,7 @@ const getAllMentorResourcesFromDB = async (
     const studentTrackIds = student?.targetTrack || [];
 
     const filterCondition = {
-      targeteAudience: "STUDENT",
+      targeteAudience: { $in: safeQuery.targeteAudience },
       $or: [
         { targertGroup: { $in: studentGroupIds } },
         { targertGroup: null },
@@ -266,6 +344,14 @@ const updateResourceFromDB = async (id: string, payload: ILearningMaterial) => {
         updatePayload.targertGroup,
       );
     }
+  }
+
+  if (Array.isArray(updatePayload.targeteAudience)) {
+    updatePayload.targeteAudience = updatePayload.targeteAudience.map(
+      (audience: string) => audience.trim(),
+    );
+  } else {
+    updatePayload.targeteAudience = [updatePayload.targeteAudience?.trim()];
   }
 
   const isTargetTrackExists = await UserGroupTrack.findById(
