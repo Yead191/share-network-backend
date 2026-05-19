@@ -10,25 +10,26 @@ const router = express.Router();
 router.route("/")
     .post(
         auth(
-            USER_ROLES.ADMIN, 
+            USER_ROLES.ADMIN,
             USER_ROLES.SUPER_ADMIN
         ),
         StudentController.createStudent
     )
     .get(
         auth(
-            USER_ROLES.ADMIN, 
-            USER_ROLES.SUPER_ADMIN, 
-            USER_ROLES.MENTOR
+            USER_ROLES.ADMIN,
+            USER_ROLES.SUPER_ADMIN,
+            USER_ROLES.MENTOR,
+            USER_ROLES.TEACHER
         ),
         StudentController.getAllStudents
     );
 router.route("/std-stats")
     .get(
         auth(
-            USER_ROLES.STUDENT, 
-            USER_ROLES.ADMIN, 
-            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.STUDENT,
+            USER_ROLES.ADMIN,
+            USER_ROLES.SUPER_ADMIN,
             USER_ROLES.MENTOR
         ),
         StudentController.getmystats
@@ -36,22 +37,22 @@ router.route("/std-stats")
 router.route("/:id")
     .get(
         auth(
-            USER_ROLES.ADMIN, 
-            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.ADMIN,
+            USER_ROLES.SUPER_ADMIN,
             USER_ROLES.MENTOR
         ),
         StudentController.getSingleStudent
     )
     .patch(
         auth(
-            USER_ROLES.ADMIN, 
+            USER_ROLES.ADMIN,
             USER_ROLES.SUPER_ADMIN
         ),
         StudentController.updateStudent
     )
     .delete(
         auth(
-            USER_ROLES.ADMIN, 
+            USER_ROLES.ADMIN,
             USER_ROLES.SUPER_ADMIN
         ),
         StudentController.deleteStudent
@@ -59,8 +60,8 @@ router.route("/:id")
 router.route("/review/:id")
     .post(
         auth(
-            USER_ROLES.ADMIN, 
-            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.ADMIN,
+            USER_ROLES.SUPER_ADMIN,
             USER_ROLES.MENTOR
         ),
         StudentController.addReview
@@ -68,9 +69,9 @@ router.route("/review/:id")
 router.route("/onboarding-answers")
     .patch(
         auth(
-            USER_ROLES.STUDENT, 
-            USER_ROLES.ADMIN, 
-            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.STUDENT,
+            USER_ROLES.ADMIN,
+            USER_ROLES.SUPER_ADMIN,
             USER_ROLES.MENTOR
         ),
         StudentController.saveOnboardingAnswers
