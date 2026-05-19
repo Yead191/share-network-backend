@@ -158,6 +158,10 @@ const getMentorById = async (id: string) => {
           path: 'userGroupTrack',
           select: '_id name',
         },
+        {
+          path: 'Goals',
+          select: '_id title description',
+        },
       ],
     })
   if (!mentor || mentor.role !== USER_ROLES.MENTOR) {
