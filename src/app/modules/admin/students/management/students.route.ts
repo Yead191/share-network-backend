@@ -24,6 +24,13 @@ router.route("/")
         ),
         StudentController.getAllStudents
     );
+router.route("/for-teacher")
+    .get(
+        auth(
+            USER_ROLES.TEACHER
+        ),
+        StudentController.getStudentsForTeacher
+    );
 router.route("/std-stats")
     .get(
         auth(
