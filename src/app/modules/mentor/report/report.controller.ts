@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { WeeklyReport } from './report.model';
 import catchAsync from '../../../../shared/catchAsync';
 import { WeeklyReportService } from './report.service';
 
@@ -22,7 +21,7 @@ const getStudentReports = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-const  getAllReports = catchAsync(async (req: Request, res: Response) => {
+const getAllReports = catchAsync(async (req: Request, res: Response) => {
     const reports = await WeeklyReportService.getAllStudentReportsFromDB(req.query);
     res.status(200).json({
         success: true,
@@ -59,7 +58,7 @@ const getReportByStudentIdAndWeekRange = catchAsync(async (req: Request, res: Re
         success: true,
         message: "Reports retrieved successfully",
         data: {
-            reports: reports 
+            reports: reports
         },
     });
 });
