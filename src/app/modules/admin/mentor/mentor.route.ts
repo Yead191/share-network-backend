@@ -9,14 +9,14 @@ router.route("/")
     .post(
         excelUploadHandler(),
         auth(
-            USER_ROLES.ADMIN, 
+            USER_ROLES.ADMIN,
             USER_ROLES.SUPER_ADMIN
         ),
         adminMentorController.bulkUploadMentors
     )
     .get(
         auth(
-            USER_ROLES.ADMIN, 
+            USER_ROLES.ADMIN,
             USER_ROLES.SUPER_ADMIN
         ),
         adminMentorController.getAllMentors
@@ -35,14 +35,15 @@ router.route("/:id")
     )
     .patch(
         auth(
-            USER_ROLES.ADMIN, 
-            USER_ROLES.SUPER_ADMIN
+            USER_ROLES.ADMIN,
+            USER_ROLES.SUPER_ADMIN,
+            USER_ROLES.COORDINATOR
         ),
         adminMentorController.updateMentor
     )
     .delete(
         auth(
-            USER_ROLES.ADMIN, 
+            USER_ROLES.ADMIN,
             USER_ROLES.SUPER_ADMIN,
             USER_ROLES.MENTOR
         ),
