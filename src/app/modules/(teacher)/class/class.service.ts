@@ -13,7 +13,7 @@ const createClassToDB = async (payload: IClass) => {
 
   const result = await Class.create(payload);
 
-  console.log('Created Class teacher field:', result.teacher);
+  // console.log('Created Class teacher field:', result.teacher);
 
   await RecentActivity.create({
     title: result.title,
@@ -217,7 +217,7 @@ const createClassToDB = async (payload: IClass) => {
 //   return { classes, pagination };
 // };
 const getAllClassesFromDB = async (query: Record<string, any>) => {
-  
+
   const queryData = { ...query };
   const filterConditions: Record<string, any> = {};
   const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
@@ -276,16 +276,16 @@ const getAllClassesFromDB = async (query: Record<string, any>) => {
 
   // Debug: Check what classes exist and their dates
   const allClasses = await Class.find({}).select('title classDate').lean();
-  console.log('All classes in DB:', allClasses.map(c => ({ 
-    title: c.title, 
-    classDate: c.classDate,
-    classDateDayjs: dayjs(c.classDate).format('YYYY-MM-DD'),
-    isTodayOrFuture: dayjs(c.classDate).isAfter(today) || dayjs(c.classDate).isSame(today),
-    isBeforeToday: dayjs(c.classDate).isBefore(today)
-  })));
+  // console.log('All classes in DB:', allClasses.map(c => ({ 
+  //   title: c.title, 
+  //   classDate: c.classDate,
+  //   classDateDayjs: dayjs(c.classDate).format('YYYY-MM-DD'),
+  //   isTodayOrFuture: dayjs(c.classDate).isAfter(today) || dayjs(c.classDate).isSame(today),
+  //   isBeforeToday: dayjs(c.classDate).isBefore(today)
+  // })));
 
-  console.log('Filter conditions being applied:', filterConditions);
-  console.log('Query data after processing:', queryData);
+  // console.log('Filter conditions being applied:', filterConditions);
+  // console.log('Query data after processing:', queryData);
 
   const result = new QueryBuilder(baseQuery, queryData)
     .filter()

@@ -10,7 +10,7 @@ import { emailHelper } from "../../../../helpers/emailHelper";
 const createEventFromDB = async (payload: Partial<IEvent>) => {
   // Create the event first
   const event = await Event.create(payload);
-  console.log(event);
+  // console.log(event);
   let students;
   if (!payload.studentAssigned || payload.studentAssigned.length === 0) {
     students = await User.find({ role: "STUDENT" }, "email firstName lastName");
@@ -42,9 +42,9 @@ const createEventFromDB = async (payload: Partial<IEvent>) => {
         });
 
         await Promise.all(emailPromises);
-        console.log(
-          `Sent ${emailPromises.length} event invitation emails in background`,
-        );
+        // console.log(
+        //   `Sent ${emailPromises.length} event invitation emails in background`,
+        // );
       } catch (error) {
         console.error("Error sending background emails:", error);
       }
@@ -214,7 +214,7 @@ const updateEventByIdInDB = async (id: string, payload: Partial<IEvent>) => {
         "email firstName lastName",
       );
 
-      console.log("Newly added students to notify:", newStudents);
+      // console.log("Newly added students to notify:", newStudents);
 
       // Send emails to newly added students only in background
       if (newStudents.length > 0 && updatedEvent) {
@@ -237,9 +237,9 @@ const updateEventByIdInDB = async (id: string, payload: Partial<IEvent>) => {
             });
 
             await Promise.all(emailPromises);
-            console.log(
-              `Sent ${emailPromises.length} event invitation emails to newly added students in background`,
-            );
+            // console.log(
+            //   `Sent ${emailPromises.length} event invitation emails to newly added students in background`,
+            // );
           } catch (error) {
             console.error(
               "Error sending background emails for updated event:",

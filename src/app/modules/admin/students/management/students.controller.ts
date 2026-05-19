@@ -25,6 +25,17 @@ const getAllStudents = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getStudentsForTeacher = catchAsync(async (req: Request, res: Response) => {
+  const result = await StudentService.getStudentsForTeacherFromDB(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Students retrieved successfully',
+    pagination: result?.pagination,
+    data: result.data,
+  });
+});
+
 const getSingleStudent = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const result = await StudentService.getSingleStudentFromDB(id);
@@ -51,7 +62,7 @@ const addReview = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const reviewData = req.body; // Body te rating, comment, reviewerId thakbe
   const result = await StudentService.addReviewToStudent(id, reviewData);
-  
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -61,15 +72,15 @@ const addReview = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getmystats = catchAsync(async (req: Request, res: Response) => {
-    const studentId = req.params.studentId;
-    const result = await StudentService.getmystatsFromDB(studentId);
-  
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Student stats fetched successfully',
-        data: result
-    });
+  const studentId = req.params.studentId;
+  const result = await StudentService.getmystatsFromDB(studentId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Student stats fetched successfully',
+    data: result
+  });
 });
 
 const deleteStudent = catchAsync(async (req: Request, res: Response) => {
@@ -85,10 +96,10 @@ const deleteStudent = catchAsync(async (req: Request, res: Response) => {
 
 // saveOnboardingAnswers
 const saveOnboardingAnswers = catchAsync(async (req: Request, res: Response) => {
-  const studentId = req.user.id; 
-  const answers = req.body; 
+  const studentId = req.user.id;
+  const answers = req.body;
   const result = await StudentService.saveOnboardingAnswersFromDB(studentId, answers);
-  
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -104,7 +115,8 @@ export const StudentController = {
   updateStudent,
   addReview,
   deleteStudent,
-//   oopsGoals
+  //   oopsGoals
   getmystats,
-  saveOnboardingAnswers
+  saveOnboardingAnswers,
+  getStudentsForTeacher
 };

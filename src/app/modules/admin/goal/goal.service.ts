@@ -59,63 +59,63 @@ const createGoalFromDb = async (studentId: string, payload: IGoal[]) => {
 };
 
 const getAllGoalsFromDB = async (query: Record<string, any>) => {
-    const result = new QueryBuilder(Goal.find(), query).search(['title', 'description']).filter().sort().paginate();
-    const goals = await result.queryModel;
-    const pagination = await result.getPaginationInfo();
-    return { goals, pagination };
+  const result = new QueryBuilder(Goal.find(), query).search(['title', 'description']).filter().sort().paginate();
+  const goals = await result.queryModel;
+  const pagination = await result.getPaginationInfo();
+  return { goals, pagination };
 }
 
 const getGoalByIdFromDB = async (id: string) => {
-    const result = await Goal.findById(id);
-    if (!result) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "Goal doesn't exist!");
-    }
-    return result;
+  const result = await Goal.findById(id);
+  if (!result) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Goal doesn't exist!");
+  }
+  return result;
 }
 
 const updateGoalInDB = async (id: string, payload: Partial<IGoal>) => {
-    console.log("Type of payload:", Array.isArray(payload) ? "ARRAY" : typeof payload);
-    console.log("Payload value:", payload);
+  // console.log("Type of payload:", Array.isArray(payload) ? "ARRAY" : typeof payload);
+  // console.log("Payload value:", payload);
 
-    if (payload.index) {
-        const isGoalExist = await Goal.exists({ index: payload.index, _id: { $ne: id } });
-        if (isGoalExist) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, "Goal with this index already exists!");
-        }
+  if (payload.index) {
+    const isGoalExist = await Goal.exists({ index: payload.index, _id: { $ne: id } });
+    if (isGoalExist) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Goal with this index already exists!");
     }
+  }
 
-    const updateData = Array.isArray(payload) ? payload[0] : payload;
+  const updateData = Array.isArray(payload) ? payload[0] : payload;
 
-    if (!updateData || Object.keys(updateData).length === 0) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "No valid update data provided");
-    }
+  if (!updateData || Object.keys(updateData).length === 0) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "No valid update data provided");
+  }
 
-    const result = await Goal.findByIdAndUpdate(
-        id, 
-        { $set: updateData }, 
-        { new: true, runValidators: true }
-    );
+  const result = await Goal.findByIdAndUpdate(
+    id,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  );
 
-    if (!result) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Goal doesn't exist!");
-    }
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Goal doesn't exist!");
+  }
 
-    return { message: "Goal updated successfully", result };
+  return { message: "Goal updated successfully", result };
 }
 
 const deleteGoalFromDB = async (id: string) => {
-    const result = await Goal.findByIdAndDelete(id);
-    if (!result) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "Goal doesn't exist!");
-    }
-    const message = "Goal deleted successfully";
-    return { message };
+  const result = await Goal.findByIdAndDelete(id);
+  if (!result) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Goal doesn't exist!");
+  }
+  const message = "Goal deleted successfully";
+  return { message };
 }
 
 export const goalService = {
-    createGoalFromDb,
-    getAllGoalsFromDB,
-    getGoalByIdFromDB,
-    updateGoalInDB,
-    deleteGoalFromDB
+  createGoalFromDb,
+  getAllGoalsFromDB,
+  getGoalByIdFromDB,
+  updateGoalInDB,
+  deleteGoalFromDB
 }
