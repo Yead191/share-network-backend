@@ -16,7 +16,7 @@ const fileUploadHandler = () => {
     //folder create for different file
     const createDir = (dirPath: string) => {
         if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath);
+            fs.mkdirSync(dirPath);
         }
     };
 
@@ -28,16 +28,19 @@ const fileUploadHandler = () => {
             switch (file.fieldname) {
                 case 'image':
                     uploadDir = path.join(baseUploadDir, 'images');
-                break;
+                    break;
                 case 'submittedfile':
                     uploadDir = path.join(baseUploadDir, 'student-assignments');
-                break;
+                    break;
                 case 'attachment':
                     uploadDir = path.join(baseUploadDir, 'attachments');
-                break;
+                    break;
                 case 'file':
                     uploadDir = path.join(baseUploadDir, 'files');
-                break;
+                    break;
+                case 'cv':
+                    uploadDir = path.join(baseUploadDir, 'cvs');
+                    break;
                 default:
                     throw new ApiError(StatusCodes.BAD_REQUEST, 'File is not supported');
             }
@@ -49,10 +52,10 @@ const fileUploadHandler = () => {
             const fileExt = path.extname(file.originalname);
             const fileName =
                 file.originalname
-                .replace(fileExt, '')
-                .toLowerCase()
-                .split(' ')
-                .join('-') +
+                    .replace(fileExt, '')
+                    .toLowerCase()
+                    .split(' ')
+                    .join('-') +
                 '-' +
                 Date.now();
             cb(null, fileName + fileExt);
@@ -63,12 +66,12 @@ const fileUploadHandler = () => {
     const filterFilter = (req: Request, file: any, cb: FileFilterCallback) => {
 
         // console.log("file handler",file)
-        if (file.fieldname === 'image' || file.fieldname === 'submittedfile' || file.fieldname === 'attachment' || file.fieldname === 'file') {
+        if (file.fieldname === 'image' || file.fieldname === 'submittedfile' || file.fieldname === 'attachment' || file.fieldname === 'file' || file.fieldname === 'cv') {
             if (
                 file.mimetype === 'image/jpeg' ||
                 file.mimetype === 'image/png' ||
                 file.mimetype === 'image/jpg' ||
-                file.mimetype === 'image/webp'||
+                file.mimetype === 'image/webp' ||
                 file.mimetype === 'application/pdf' ||
                 file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
                 file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
@@ -108,13 +111,14 @@ const fileUploadHandler = () => {
         }
     };
 
-    const upload = multer({ storage: storage, fileFilter: filterFilter})
-    .fields([
-        { name: 'image', maxCount: 30 },
-        { name: 'submittedfile', maxCount: 15 },
-        { name: 'attachment', maxCount: 15 },
-        { name: 'file', maxCount: 15 },
-     ]);
+    const upload = multer({ storage: storage, fileFilter: filterFilter })
+        .fields([
+            { name: 'image', maxCount: 30 },
+            { name: 'submittedfile', maxCount: 15 },
+            { name: 'attachment', maxCount: 15 },
+            { name: 'file', maxCount: 15 },
+            { name: 'cv', maxCount: 15 },
+        ]);
     return upload;
 
 };

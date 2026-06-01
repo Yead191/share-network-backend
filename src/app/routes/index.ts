@@ -37,6 +37,7 @@ import { AdminOnboardingRoutes } from '../modules/admin/onboarding/onboarding.ro
 import { mentorDashboardRoutes } from '../modules/mentor/dashboard/dashboard.route';
 import { goalRoutes } from '../modules/admin/goal/goal.route';
 import { StudentStatsRoutes } from '../modules/students/studentstats/stat.route';
+import { InternshipRoutes } from '../modules/internship/internship.routes';
 const router = express.Router();
 
 const apiRoutes = [
@@ -78,6 +79,7 @@ const apiRoutes = [
     { path: "/class", route: ClassRoutes },
     { path: "/assignment", route: AssignmentRoutes },
     { path: "/recent-activity", route: RecentActivityRoutes },
+    { path: "/internship", route: InternshipRoutes },
 ]
 
 apiRoutes.forEach(route => router.use(route.path, route.route));
