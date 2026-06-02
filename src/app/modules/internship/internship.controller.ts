@@ -15,6 +15,7 @@ const createInternship = catchAsync(async (req: Request, res: Response) => {
     ...req.body,
     cv
   }
+  // console.log(data)
   const result = await internshipService.createInternship(data);
 
   sendResponse(res, {
@@ -40,7 +41,7 @@ const getAllInternships = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Internship profiles retrieved successfully',
-    data: result,
+    data: result?.data,
   });
 });
 

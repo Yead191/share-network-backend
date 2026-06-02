@@ -22,7 +22,7 @@ const internshipSchema = new Schema<IInternship>(
     phoneNumber: { type: String, required: true },
     email: { type: String, required: true },
     currentCity: { type: String, required: true },
-    cvFileUrl: { type: String },
+    cv: { type: String },
     cvFileName: { type: String },
     linkedIn: { type: String },
     portfolio: { type: String },
@@ -45,8 +45,8 @@ const internshipSchema = new Schema<IInternship>(
     certifications: { type: String },
 
     // 4. Evaluation (Admin Only)
-    overallScore: { type: Number, min: 1, max: 10 },
-    performanceRating: { type: Number, enum: [1, 2, 3, 4, 5] },
+    overallScore: { type: Number, min: 1, max: 10, required: true },
+    performanceRating: { type: Number, enum: [1, 2, 3, 4, 5] , required: true},
     strengths: { type: String },
     areasForImprovement: { type: String },
 

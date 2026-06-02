@@ -1,10 +1,11 @@
-import mongoose, { Model } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { USER_ROLES } from '../../../enums/user';
 import { IUserGroup } from '../user-group/user-group.interface';
 import { IUserGroupTrack } from '../user-group/user-group-track/user-group-track.interface';
 import { Portfolio } from '../portfolio/portfolio.model';
 import { IClass } from '../(teacher)/class/class.interface';
 import { Onboarding } from '../admin/onboarding/onboarding.model';
+
 
 interface IStripeAccountInfo {
     status?: boolean;
@@ -80,6 +81,7 @@ export type IUser = {
     userGroup?: (mongoose.Types.ObjectId | IUserGroup)[];
     userGroupTrack?: mongoose.Types.ObjectId | IUserGroupTrack;
     assignedMentors?: (mongoose.Types.ObjectId | IUser)[];
+    internship:Types.ObjectId | null
 }
 
 export type UserModal = {

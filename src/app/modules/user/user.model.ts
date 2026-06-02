@@ -292,6 +292,11 @@ const userSchema = new Schema<IUser, UserModal>(
         ref: "User",
       },
     ],
+    internship: {
+      type: Schema.Types.ObjectId,
+      ref: "Internship",
+      default: null,
+    },
   },
   {
     timestamps: true,

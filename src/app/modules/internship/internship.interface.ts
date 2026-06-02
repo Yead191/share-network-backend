@@ -21,7 +21,7 @@ export interface IInternship extends Document {
   phoneNumber: string;
   email: string;
   currentCity: string;
-  cvFileUrl?: string;
+  cv?: string;
   cvFileName?: string;
   linkedIn?: string;
   portfolio?: string;

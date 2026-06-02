@@ -5,8 +5,8 @@ import { Internship } from './internship.model';
 import { IInternship } from './internship.interface';
 import fs from 'fs';
 import path from 'path';
-import { getSingleFilePath } from '../../../shared/getFilePath';
 import { User } from '../user/user.model';
+import { validateInternshipPayload } from '../../../helpers/validateInternshipPayload';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -71,7 +71,7 @@ const createInternship = async (
   if (isInternshipExist) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'This Profile has already created an Internship profile');
   }
-
+  validateInternshipPayload(payload);
 
   // Parse FormData fields that were JSON-stringified on the frontend
   let data: Partial<IInternship> = {
@@ -98,6 +98,11 @@ const createInternship = async (
   }
   // console.log(data)
   const internship = await Internship.create(data);
+  await User.findOneAndUpdate({ _id: payload.studentId }, {
+    $set: {
+      internship: internship._id
+    }
+  })
   return internship;
 };
 
@@ -174,6 +179,8 @@ const updateInternship = async (
     throw new ApiError(StatusCodes.NOT_FOUND, 'Internship profile not found');
   }
 
+  validateInternshipPayload(payload);
+
   const data: Partial<IInternship> = { ...payload };
 
   // Only re-parse if the fields were actually sent in this request
@@ -188,6 +195,20 @@ const updateInternship = async (
     }) ?? existing.languages;
   }
 
+  if (payload.studentId !== undefined && existing.studentId.toString() !== payload.studentId as any) {
+    data.studentId = payload.studentId;
+    await User.findOneAndUpdate({ _id: existing.studentId }, {
+      $set: {
+        internship: null
+      }
+    })
+    await User.findOneAndUpdate({ _id: payload.studentId }, {
+      $set: {
+        internship: id
+      }
+    })
+  }
+
   // Boolean coercion (FormData sends strings)
   if (payload.hasDutchResidency !== undefined) data.hasDutchResidency = parseBool(payload.hasDutchResidency);
   if (payload.isAsylumSeeker !== undefined) data.isAsylumSeeker = parseBool(payload.isAsylumSeeker);
@@ -197,8 +218,6 @@ const updateInternship = async (
   if (payload.doNotShareContact !== undefined) data.doNotShareContact = parseBool(payload.doNotShareContact);
   if (payload.doNotSharePhoto !== undefined) data.doNotSharePhoto = parseBool(payload.doNotSharePhoto);
   if (payload.anonymousOnly !== undefined) data.anonymousOnly = parseBool(payload.anonymousOnly);
-
-
 
   const updated = await Internship.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true });
   return updated;
@@ -217,7 +236,13 @@ const deleteInternship = async (id: string) => {
   }
 
   // Clean up CV file from disk
-  deleteOldCv(internship.cvFileUrl);
+  deleteOldCv(internship.cv);
+
+  await User.findOneAndUpdate({ _id: internship.studentId }, {
+    $set: {
+      internship: null
+    }
+  })
 
   await Internship.findByIdAndDelete(id);
   return { message: 'Internship profile deleted successfully' };
