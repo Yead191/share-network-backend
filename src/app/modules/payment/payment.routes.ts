@@ -5,7 +5,7 @@ import { PaymentController } from "./payment.controller";
 const router = express.Router();
 
 router.post("/create-payment-checkout", 
-    auth(USER_ROLES.CUSTOMER),
+    auth(USER_ROLES.STUDENT),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { price } = req.body;
@@ -17,7 +17,7 @@ router.post("/create-payment-checkout",
     }, 
     PaymentController.createPaymentCheckoutToStripe
 );
-router.get("/create-connected-account", auth(USER_ROLES.PROVIDER), PaymentController.createAccountToStripe);
-router.patch("/transfer-payouts/:id", auth(USER_ROLES.CUSTOMER), PaymentController.transferAndPayout);
+router.get("/create-connected-account", auth(USER_ROLES.STUDENT), PaymentController.createAccountToStripe);
+router.patch("/transfer-payouts/:id", auth(USER_ROLES.STUDENT), PaymentController.transferAndPayout);
 
 export const PaymentRoutes = router;

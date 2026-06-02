@@ -5,6 +5,8 @@ import { Internship } from './internship.model';
 import { IInternship } from './internship.interface';
 import fs from 'fs';
 import path from 'path';
+import { getSingleFilePath } from '../../../shared/getFilePath';
+import { User } from '../user/user.model';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -55,14 +57,29 @@ const deleteOldCv = (cvFileUrl?: string) => {
 // ─── Create ──────────────────────────────────────────────────────────────────
 
 const createInternship = async (
-  payload: Partial<IInternship>,
+  payload: Partial<IInternship>
 ) => {
+
+  const isUserExist = await User.findById(payload.studentId)
+
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'User not found');
+  }
+
+  const isInternshipExist = await Internship.findOne({ studentId: payload.studentId })
+
+  if (isInternshipExist) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'This Profile has already created an Internship profile');
+  }
+
+
   // Parse FormData fields that were JSON-stringified on the frontend
-  const data: Partial<IInternship> = {
+  let data: Partial<IInternship> = {
     ...payload,
+    // cvFileUrl: cvPath,
     keySkills: parseArrayField(payload.keySkills),
     preferredFields: parseArrayField(payload.preferredFields),
-    languages: parseJsonField<IInternship['languages']>(payload.languages as unknown) ?? [],
+    // languages: parseJsonField<IInternship['languages']>(payload.languages as unknown) ?? [],
     hasDutchResidency: parseBool(payload.hasDutchResidency),
     isAsylumSeeker: parseBool(payload.isAsylumSeeker),
     interestedInInternship: parseBool(payload.interestedInInternship),
@@ -73,6 +90,13 @@ const createInternship = async (
     anonymousOnly: parseBool(payload.anonymousOnly),
   };
 
+  // I will convert string object to json
+  if (payload.languages) {
+    data.languages = data.languages?.map((language: any) => {
+      return JSON.parse(language)
+    });
+  }
+  // console.log(data)
   const internship = await Internship.create(data);
   return internship;
 };
@@ -157,8 +181,12 @@ const updateInternship = async (
     data.keySkills = parseArrayField(payload.keySkills);
   if (payload.preferredFields !== undefined)
     data.preferredFields = parseArrayField(payload.preferredFields);
-  if (payload.languages !== undefined)
-    data.languages = parseJsonField<IInternship['languages']>(payload.languages as unknown) ?? existing.languages;
+  // I will convert string object to json
+  if (payload.languages !== undefined) {
+    data.languages = (data.languages as any[])?.map((language: any) => {
+      return JSON.parse(language);
+    }) ?? existing.languages;
+  }
 
   // Boolean coercion (FormData sends strings)
   if (payload.hasDutchResidency !== undefined) data.hasDutchResidency = parseBool(payload.hasDutchResidency);
