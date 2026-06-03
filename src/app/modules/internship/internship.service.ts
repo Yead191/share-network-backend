@@ -112,8 +112,10 @@ const getAllInternships = async (query: {
   page?: number;
   limit?: number;
   searchTerm?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }) => {
-  const { page = 1, limit = 10, searchTerm } = query;
+  const { page = 1, limit = 10, searchTerm, sortBy, sortOrder } = query;
   const skip = (page - 1) * limit;
 
   const filter: Record<string, unknown> = {};
@@ -128,9 +130,16 @@ const getAllInternships = async (query: {
     ];
   }
 
+  const sortOptions: Record<string, 1 | -1> = {};
+  if (sortBy) {
+    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  } else {
+    sortOptions['createdAt'] = -1;
+  }
+
   const [data, total] = await Promise.all([
     Internship.find(filter)
-      .sort({ createdAt: -1 })
+      .sort(sortOptions)
       .skip(skip)
       .limit(limit)
       .lean(),
@@ -247,6 +256,82 @@ const deleteInternship = async (id: string) => {
   await Internship.findByIdAndDelete(id);
   return { message: 'Internship profile deleted successfully' };
 };
+const getInternshipStats = async () => {
+  const totalProfiles = await Internship.countDocuments();
+  const interestedInInternship = await Internship.countDocuments({ interestedInInternship: true });
+  const dutchResidency = await Internship.countDocuments({ hasDutchResidency: true });
+  const averageScore = await Internship.aggregate([
+    {
+      $group: {
+        _id: null,
+        averageScore: { $avg: '$overallScore' },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        averageScore: { $round: ['$averageScore', 2] },
+      },
+    },
+  ]);
+  const distribution = await Internship.aggregate([
+    {
+      $group: {
+        _id: null,
+        low: {
+          $sum: {
+            $cond: [{ $lte: ['$overallScore', 5] }, 1, 0],
+          },
+        },
+        medium: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $gt: ['$overallScore', 5] },
+                  { $lte: ['$overallScore', 7] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+        good: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $gt: ['$overallScore', 7] },
+                  { $lte: ['$overallScore', 8.5] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+        excellent: {
+          $sum: {
+            $cond: [{ $gt: ['$overallScore', 8.5] }, 1, 0],
+          },
+        },
+      },
+    },
+  ]);
+  return {
+    totalProfiles,
+    interestedInInternship,
+    dutchResidency,
+    averageScore: averageScore[0]?.averageScore || 0,
+    distribution: {
+      low: distribution[0]?.low || 0,
+      medium: distribution[0]?.medium || 0,
+      good: distribution[0]?.good || 0,
+      excellent: distribution[0]?.excellent || 0,
+    }
+  };
+};
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
@@ -256,4 +341,5 @@ export const internshipService = {
   getInternshipById,
   updateInternship,
   deleteInternship,
+  getInternshipStats
 };

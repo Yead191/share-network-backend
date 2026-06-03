@@ -29,12 +29,14 @@ const createInternship = catchAsync(async (req: Request, res: Response) => {
 // ─── Get All ─────────────────────────────────────────────────────────────────
 
 const getAllInternships = catchAsync(async (req: Request, res: Response) => {
-  const { page, limit, searchTerm } = req.query;
+  const { page, limit, searchTerm, sortBy, sortOrder } = req.query;
 
   const result = await internshipService.getAllInternships({
     page: page ? Number(page) : undefined,
     limit: limit ? Number(limit) : undefined,
     searchTerm: searchTerm as string | undefined,
+    sortBy: sortBy as string | undefined,
+    sortOrder: sortOrder as 'asc' | 'desc' | undefined,
   });
 
   sendResponse(res, {
@@ -42,6 +44,7 @@ const getAllInternships = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Internship profiles retrieved successfully',
     data: result?.data,
+    pagination: result?.pagination
   });
 });
 
@@ -92,6 +95,19 @@ const deleteInternship = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+//--- get all internship statistics ---
+
+const getInternshipStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await internshipService.getInternshipStats();
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Internship statistics retrieved successfully',
+    data: result,
+  });
+});
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export const internshipController = {
@@ -100,4 +116,5 @@ export const internshipController = {
   getInternshipById,
   updateInternship,
   deleteInternship,
+  getInternshipStats
 };

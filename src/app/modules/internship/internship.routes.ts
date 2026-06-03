@@ -23,6 +23,14 @@ router.get(
   internshipController.getAllInternships
 );
 
+// --- get all internship statistics ---
+// GET /api/v1/internship/stats
+router.get(
+  '/stats',
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.COORDINATOR),
+  internshipController.getInternshipStats
+);
+
 // ─── Get Single — Admin + Coordinator ────────────────────────────────────────
 // GET /api/v1/internship/:id
 router.get(

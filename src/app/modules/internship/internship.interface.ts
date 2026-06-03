@@ -73,3 +73,22 @@ export interface IInternship extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IInternshipStats extends Document {
+  totalProfiles: number;
+  interestedInInternship: number;
+  dutchResidency: number;
+  averageScore: number;
+  // distribution: {
+  //   '0-5': number;
+  //   '5.1-7': number;
+  //   '7.1-8.5': number;
+  //   '8.6-10': number;
+  // };
+  distribution: {
+    low: number;      // 0-5
+    medium: number;   // 5-7
+    good: number;     // 7-8.5
+    excellent: number; // 8.5-10
+  };
+} 
