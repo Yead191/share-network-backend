@@ -39,7 +39,7 @@ const createAdminToDB = async (payload: any): Promise<IUser> => {
 };
 
 const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
-  payload.verified =true
+  payload.verified = true
   const createUser = await User.create(payload);
   if (!createUser) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Failed to create user");
@@ -59,35 +59,31 @@ const updateProfileToDB = async (
     throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
   }
 
-  const fileFields = [
-    "profile",
-    "tradeLicences",
-    "sallonPhoto",
-    "proofOwnerId",
-  ];
-  console.log("Existing user data before update:", existingUser);
-  for (const field of fileFields) {
-    if (payload[field as keyof IUser] && existingUser[field as keyof IUser]) {
-      try {
-        unlinkFile(existingUser[field as keyof IUser] as string);
-      } catch (error) {
-        console.error(`Failed to unlink old ${field}:`, error);
-      }
-    }
-  }
+  // const fileFields = [
+  //   "profile",
+  //   "tradeLicences",
+  //   "sallonPhoto",
+  //   "proofOwnerId",
+  // ];
+  // console.log("Existing user data before update:", existingUser);
+  // for (const field of fileFields) {
+  //   if (payload[field as keyof IUser] && existingUser[field as keyof IUser]) {
+  //     try {
+  //       unlinkFile(existingUser[field as keyof IUser] as string);
+  //     } catch (error) {
+  //       console.error(`Failed to unlink old ${field}:`, error);
+  //     }
+  //   }
+  // }
 
   const userToUpdate = await User.findById(id);
   if (!userToUpdate) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "User not found for update!");
   }
 
-  Object.assign(userToUpdate, payload);
+  const result = await User.findOneAndUpdate({ _id: id }, payload, { new: true });
 
-  const updatedUser = await userToUpdate.save();
-
-  const { password, ...userWithoutPassword } = updatedUser.toObject();
-
-  return userWithoutPassword;
+  return result;
 };
 
 const updateLocationToDB = async (
