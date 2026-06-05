@@ -84,19 +84,19 @@ const userSchema = new Schema<IUser, UserModal>(
       type: String,
       required: false,
     },
- 
+
 
     highestEducation: {
       type: String,
       required: false,
     },
- 
+
     department: {
-        type: String,
-        trim: true
+      type: String,
+      trim: true
     },
     rollNumber: {
-        type: Number
+      type: Number
     },
     havealaptop: {
       type: Boolean,
@@ -163,15 +163,15 @@ const userSchema = new Schema<IUser, UserModal>(
         },
       },
     ],
-  Onboarding: {
-        type: Schema.Types.ObjectId,
-        ref: "Onboarding",
+    Onboarding: {
+      type: Schema.Types.ObjectId,
+      ref: "Onboarding",
     },
 
-  careerDirections: {
-        type: [String],
-        required: [true, "Career directions are required"],
-        default: []
+    careerDirections: {
+      type: [String],
+      required: [true, "Career directions are required"],
+      default: []
     },
     isUpdate: {
       type: Boolean,
@@ -182,7 +182,10 @@ const userSchema = new Schema<IUser, UserModal>(
       default: false,
     },
 
-
+    zipCode: {
+      type: String,
+      required: false,
+    },
     about: {
       type: String,
       required: false,
@@ -231,14 +234,14 @@ const userSchema = new Schema<IUser, UserModal>(
     },
 
     classId: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Class', 
+      type: Schema.Types.ObjectId,
+      ref: 'Class',
     }],
     assignedStudents: [
-        {
-            type: Schema.Types.ObjectId,
-            ref: 'User',
-        }
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      }
     ],
     authentication: {
       type: {
@@ -259,12 +262,12 @@ const userSchema = new Schema<IUser, UserModal>(
     },
     status: {
       type: String,
-      enum: ["PENDING", "ACTIVE", "NON_ACTIVE","ALUMNI_GRADUATED"],
+      enum: ["PENDING", "ACTIVE", "NON_ACTIVE", "ALUMNI_GRADUATED"],
       default: "PENDING",
     },
     isOnline: {
-    type: Boolean,
-    default: false,
+      type: Boolean,
+      default: false,
     },
 
     lastSeen: {
@@ -306,7 +309,7 @@ const userSchema = new Schema<IUser, UserModal>(
 userSchema.index({ location: "2dsphere" });
 
 userSchema.statics.isExistUserById = async function (id: string) {
-    return await this.findById(id);
+  return await this.findById(id);
 };
 
 const mapOnlineStatus = (_doc: unknown, ret: Record<string, any>) => {
@@ -372,7 +375,7 @@ userSchema.pre("save", async function (next) {
     if (!user.accountInformation) {
       user.accountInformation = {
         status: false,
-        accountId: "",          
+        accountId: "",
         externalAccountId: "",
         accountUrl: "",
         currency: ""
@@ -384,14 +387,14 @@ userSchema.pre("save", async function (next) {
   }
 
   if (!user.isModified('password')) {
-      return next();
+    return next();
   }
 
   if (user.password) {
-      user.password = await bcrypt.hash(
-        user.password,
-        Number(config.bcrypt_salt_rounds),
-      );
+    user.password = await bcrypt.hash(
+      user.password,
+      Number(config.bcrypt_salt_rounds),
+    );
   }
 
   next();

@@ -196,7 +196,7 @@ const getStudentsFromDB = async (mentorId: string) => {
   const result = await User.find({
     mentorId,
     role: USER_ROLES.STUDENT,
-  }).populate("mentorId", "firstName lastName email profile contact location");
+  }).populate("mentorId", "firstName lastName email profile contact location ");
 
   return result;
 };

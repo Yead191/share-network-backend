@@ -54,14 +54,14 @@ export type IUser = {
     password: string;
     confirmPassword?: string;
     location: {};
-    address:string
-    about:string
-    dateOfBirth:string;
+    address: string
+    about: string
+    dateOfBirth: string;
     gender: "Male" | "Female" | "Children" | "Others";
     profile: string;
     linkedInProfile?: string;
     githubProfile?: string;
-    PortfolioWebsite?:string;
+    PortfolioWebsite?: string;
     mentorId?: mongoose.Types.ObjectId | IUser;
     woop?: (mongoose.Types.ObjectId | any)[];
     Goals?: (mongoose.Types.ObjectId | any)[];
@@ -81,7 +81,8 @@ export type IUser = {
     userGroup?: (mongoose.Types.ObjectId | IUserGroup)[];
     userGroupTrack?: mongoose.Types.ObjectId | IUserGroupTrack;
     assignedMentors?: (mongoose.Types.ObjectId | IUser)[];
-    internship:Types.ObjectId | null
+    internship: Types.ObjectId | null;
+    zipCode?: string;
 }
 
 export type UserModal = {

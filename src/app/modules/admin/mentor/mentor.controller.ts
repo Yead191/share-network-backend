@@ -48,6 +48,7 @@ const getMentorById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateMentor = catchAsync(async (req: Request, res: Response) => {
+    console.log(req.body);
     const { id } = req.params;
     const updateData = req.body;
     const result = await UserService.updateMentor(id, updateData);
