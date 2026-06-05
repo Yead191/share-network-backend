@@ -72,6 +72,7 @@ const getAllEventsFromDB = async (
         { studentAssigned: { $size: 0 } },
         { studentAssigned: { $exists: false } },
       ],
+      status: "active",
     };
 
     if (studentId) {

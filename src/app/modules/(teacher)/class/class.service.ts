@@ -8,6 +8,8 @@ import { RecentActivity } from "../recentActivities/recentActivity.model";
 import { UserGroup } from "../../user-group/user-group.model";
 import { UserGroupTrack } from "../../user-group/user-group-track/user-group-track.model";
 import dayjs from "dayjs";
+import { JwtPayload } from "jsonwebtoken";
+import { USER_ROLES } from "../../../../enums/user";
 
 const createClassToDB = async (payload: IClass) => {
 
@@ -216,115 +218,213 @@ const createClassToDB = async (payload: IClass) => {
 //   const pagination = await result.getPaginationInfo();
 //   return { classes, pagination };
 // };
-const getAllClassesFromDB = async (query: Record<string, any>) => {
-
+const getAllClassesFromDB = async (
+  query: Record<string, any>,
+  user: JwtPayload,
+) => {
   const queryData = { ...query };
-  const filterConditions: Record<string, any> = {};
-  const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
 
   const page = Math.max(Number(queryData.page) || 1, 1);
   const parsedLimit = Number(queryData.limit);
-  const limit = queryData.limit !== undefined && parsedLimit === 0 ? 0 : parsedLimit || 10;
+  const limit =
+    queryData.limit !== undefined && parsedLimit === 0
+      ? 0
+      : parsedLimit || 10;
 
-  // Handle date-wise filtering using Day.js
-  const today = dayjs().startOf('day'); // Start of today
-  const todayDate = today.toDate(); // Convert to Date for MongoDB
+  const searchTerm =
+    typeof queryData.searchTerm === 'string'
+      ? queryData.searchTerm.trim()
+      : '';
 
-  if (queryData.filterType) {
-    if (queryData.filterType === 'upcoming') {
-      // Show classes from today onwards (today, tomorrow, future dates)
-      filterConditions.classDate = { $gte: todayDate };
-      queryData.sort = 'classDate'; // Show in chronological order (today first, then future)
-    } else if (queryData.filterType === 'completed') {
-      // Show classes with dates before today in serial order
-      filterConditions.classDate = { $lt: todayDate };
-      queryData.sort = '-classDate'; // Show in reverse chronological order (most recent first)
-    }
-    delete queryData.filterType;
+  const filterType = queryData.filterType;
+
+  const today = dayjs().startOf('day').toDate();
+
+  const currentYearStart = new Date(new Date().getFullYear(), 0, 1);
+  const currentYearEnd = new Date(new Date().getFullYear(), 11, 31, 23, 59, 59);
+
+  const filterConditions: Record<string, any> = {};
+
+  // -----------------------------
+  // Date Filters
+  // -----------------------------
+  if (filterType === 'upcoming') {
+    filterConditions.classDate = {
+      $gte: today,
+    };
+
+    queryData.sort ||= 'classDate';
   }
 
-  // if (!queryData.sort) {
-  //   queryData.sort = '-classDate'; 
-  // }
+  if (filterType === 'completed') {
+    filterConditions.classDate = {
+      $lt: today,
+    };
 
-  delete queryData.searchTerm;
+    queryData.sort ||= '-classDate';
+  }
 
+  // -----------------------------
+  // User Group Filter
+  // -----------------------------
   if (queryData.userGroup) {
-    const userGroupValues = Array.isArray(queryData.userGroup)
-      ? queryData.userGroup
-      : String(queryData.userGroup).split(',').map((value) => value.trim()).filter(Boolean);
+    const groupIds = (
+      Array.isArray(queryData.userGroup)
+        ? queryData.userGroup
+        : String(queryData.userGroup).split(',')
+    )
+      .map((id: string) => id.trim())
+      .filter((id: string) => Types.ObjectId.isValid(id));
 
-    const validUserGroupIds = userGroupValues.filter((id) => Types.ObjectId.isValid(id));
-    if (!validUserGroupIds.length) {
-      return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
+    if (!groupIds.length) {
+      return {
+        classes: [],
+        pagination: {
+          total: 0,
+          totalPage: 1,
+          page,
+          limit,
+        },
+      };
     }
-    filterConditions.userGroup = { $in: validUserGroupIds.map((id) => new Types.ObjectId(id)) };
+
+    filterConditions.userGroup = {
+      $in: groupIds.map((id: string) => new Types.ObjectId(id)),
+    };
   }
 
+  // -----------------------------
+  // Track Filter
+  // -----------------------------
   if (queryData.userGroupTrack) {
-    const userGroupTrackId = String(queryData.userGroupTrack).trim();
-    if (!Types.ObjectId.isValid(userGroupTrackId)) {
-      return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
+    const trackId = String(queryData.userGroupTrack).trim();
+
+    if (!Types.ObjectId.isValid(trackId)) {
+      return {
+        classes: [],
+        pagination: {
+          total: 0,
+          totalPage: 1,
+          page,
+          limit,
+        },
+      };
     }
-    filterConditions.userGroupTrack = new Types.ObjectId(userGroupTrackId);
+
+    filterConditions.userGroupTrack = new Types.ObjectId(trackId);
   }
 
+  // -----------------------------
+  // Non-admin restrictions
+  // -----------------------------
+  if (
+    user?.role !== USER_ROLES.SUPER_ADMIN &&
+    filterType !== 'upcoming'
+  ) {
+    filterConditions.status = true;
+
+    if (!filterConditions.classDate) {
+      filterConditions.classDate = {};
+    }
+
+    filterConditions.classDate = {
+      ...filterConditions.classDate,
+      $gte: currentYearStart,
+      $lte: currentYearEnd,
+    };
+  }
+
+  // Remove custom params
+  delete queryData.searchTerm;
+  delete queryData.filterType;
   delete queryData.userGroup;
   delete queryData.userGroupTrack;
 
+  // -----------------------------
+  // Base Query
+  // -----------------------------
   const baseQuery = Class.find(filterConditions);
-
-  // Debug: Check what classes exist and their dates
-  const allClasses = await Class.find({}).select('title classDate').lean();
-  // console.log('All classes in DB:', allClasses.map(c => ({ 
-  //   title: c.title, 
-  //   classDate: c.classDate,
-  //   classDateDayjs: dayjs(c.classDate).format('YYYY-MM-DD'),
-  //   isTodayOrFuture: dayjs(c.classDate).isAfter(today) || dayjs(c.classDate).isSame(today),
-  //   isBeforeToday: dayjs(c.classDate).isBefore(today)
-  // })));
-
-  // console.log('Filter conditions being applied:', filterConditions);
-  // console.log('Query data after processing:', queryData);
 
   const result = new QueryBuilder(baseQuery, queryData)
     .filter()
     .sort()
     .paginate();
 
+  // -----------------------------
+  // Search
+  // -----------------------------
   if (searchTerm) {
+    const [matchedGroups, matchedTracks] = await Promise.all([
+      UserGroup.find({
+        name: { $regex: searchTerm, $options: 'i' },
+      })
+        .select('_id')
+        .lean(),
+
+      UserGroupTrack.find({
+        name: { $regex: searchTerm, $options: 'i' },
+      })
+        .select('_id')
+        .lean(),
+    ]);
+
     const searchConditions: Record<string, any>[] = [
       { title: { $regex: searchTerm, $options: 'i' } },
       { location: { $regex: searchTerm, $options: 'i' } },
       { description: { $regex: searchTerm, $options: 'i' } },
     ];
 
-    const [matchedGroups, matchedTracks] = await Promise.all([
-      UserGroup.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
-      UserGroupTrack.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
-    ]);
+    if (matchedGroups.length) {
+      searchConditions.push({
+        userGroup: {
+          $in: matchedGroups.map((g) => g._id),
+        },
+      });
+    }
 
-    const matchedGroupIds = matchedGroups.map((group) => group._id);
-    const matchedTrackIds = matchedTracks.map((track) => track._id);
+    if (matchedTracks.length) {
+      searchConditions.push({
+        userGroupTrack: {
+          $in: matchedTracks.map((t) => t._id),
+        },
+      });
+    }
 
-    if (matchedGroupIds.length) searchConditions.push({ userGroup: { $in: matchedGroupIds } });
-    if (matchedTrackIds.length) searchConditions.push({ userGroupTrack: { $in: matchedTrackIds } });
-
-    const existingQuery = result.queryModel.getQuery();
     result.queryModel = result.queryModel.find({
-      $and: [existingQuery, { $or: searchConditions }],
+      $or: searchConditions,
     });
   }
 
   const classes = await result.queryModel
-    .select('file title description classDate location virtualClass status published userGroup userGroupTrack studentId teacher slideUrl')
-    .populate({ path: 'userGroup', select: 'name' })
-    .populate({ path: 'userGroupTrack', select: 'name' })
-    .populate({ path: 'studentId', select: 'firstName lastName email profile', model: 'User' })
-    .populate({ path: 'teacher', select: 'firstName lastName email profile', model: 'User' });
+    .select(
+      'file title description classDate location virtualClass status published userGroup userGroupTrack studentId teacher slideUrl',
+    )
+    .populate({
+      path: 'userGroup',
+      select: 'name',
+    })
+    .populate({
+      path: 'userGroupTrack',
+      select: 'name',
+    })
+    .populate({
+      path: 'studentId',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    })
+    .populate({
+      path: 'teacher',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    })
+    .lean();
 
   const pagination = await result.getPaginationInfo();
-  return { classes, pagination };
+
+  return {
+    classes,
+    pagination,
+  };
 };
 const getClassByIdFromDB = async (id: string) => {
   const result = await Class.findById(id)

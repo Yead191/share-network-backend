@@ -7,6 +7,7 @@ export interface IEvent extends Document {
     location?: string;
     type: 'webinar' | 'workshop' | 'seminar' | 'conference';
     studentAssigned: Types.ObjectId[];
+    status: 'active' | 'inactive';
     group: Types.ObjectId;
     targetTrack: Types.ObjectId;
     targetGroup: Types.ObjectId;

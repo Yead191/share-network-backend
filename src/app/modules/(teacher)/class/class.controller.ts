@@ -25,7 +25,7 @@ const createClass = catchAsync(async (req: Request, res: Response) => {
 
 const getAllClasses = catchAsync(async (req: Request, res: Response) => {
   const query = req.query;
-  const result = await ClassService.getAllClassesFromDB(query);
+  const result = await ClassService.getAllClassesFromDB(query, req.user);
 
   sendResponse(res, {
     success: true,
@@ -54,7 +54,7 @@ const updateClass = catchAsync(async (req: Request, res: Response) => {
 
   const file = getSingleFilePath(req.files, 'file');
   updateData.file = file;
-  
+
   const { message, result } = await ClassService.updateClassToDB(id, updateData);
 
   sendResponse(res, {

@@ -13,7 +13,7 @@ router
     fileUploadHandler(),
     ClassController.createClass,
   )
-  .get(ClassController.getAllClasses);
+  .get(auth(), ClassController.getAllClasses);
 
 router
   .route("/:id")

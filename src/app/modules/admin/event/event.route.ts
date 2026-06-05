@@ -10,14 +10,14 @@ import fileUploadHandler from '../../../middlewares/fileUploaderHandler';
 const router = express.Router();
 
 router.route("/")
-.get(
+    .get(
         auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.STUDENT, USER_ROLES.MENTOR, USER_ROLES.TEACHER),
         EventController.getAllEvents
-    )   
+    )
 
-.post(
+    .post(
         auth(
-            USER_ROLES.ADMIN, 
+            USER_ROLES.ADMIN,
             USER_ROLES.SUPER_ADMIN
         ),
         fileUploadHandler(),
@@ -39,7 +39,7 @@ router.route("/:id")
     .patch(
         fileUploadHandler(),
         auth(
-            USER_ROLES.ADMIN, 
+            USER_ROLES.ADMIN,
             USER_ROLES.SUPER_ADMIN
         ),
         validateRequest(EventValidation.updateEventValidationZodSchema),
@@ -47,7 +47,7 @@ router.route("/:id")
     )
     .delete(
         auth(
-            USER_ROLES.ADMIN, 
+            USER_ROLES.ADMIN,
             USER_ROLES.SUPER_ADMIN
         ),
         EventController.deleteEventById
