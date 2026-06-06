@@ -143,6 +143,7 @@ const getStudentsForTeacherFromDB = async (
 
   const baseFilter: Record<string, any> = {
     role: 'STUDENT',
+    status: 'ACTIVE'
   };
 
   // =========================
