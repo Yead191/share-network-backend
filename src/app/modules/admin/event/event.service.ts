@@ -66,13 +66,17 @@ const getAllEventsFromDB = async (
 
   let finalFilter: any = {};
 
+
   if (role !== "SUPER_ADMIN") {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
     finalFilter = {
       $or: [
         { studentAssigned: { $size: 0 } },
         { studentAssigned: { $exists: false } },
       ],
       status: "active",
+      date: { $gte: today },
     };
 
     if (studentId) {
