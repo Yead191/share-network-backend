@@ -47,7 +47,7 @@ const internshipSchema = new Schema<IInternship>(
 
     // 4. Evaluation (Admin Only)
     overallScore: { type: Number, min: 1, max: 10, required: true },
-    performanceRating: { type: Number, enum: [1, 2, 3, 4, 5], required: true },
+    performanceRating: { type: Number, enum: [0, 1, 2, 3, 4, 5], required: false },
     strengths: { type: String },
     areasForImprovement: { type: String },
 

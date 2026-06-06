@@ -260,6 +260,9 @@ const getInternshipStats = async () => {
   const totalProfiles = await Internship.countDocuments();
   const interestedInInternship = await Internship.countDocuments({ interestedInInternship: true });
   const dutchResidency = await Internship.countDocuments({ hasDutchResidency: true });
+  const graduatedStudents = await Internship.countDocuments({
+    currentStatus: 'graduated'
+  })
   const averageScore = await Internship.aggregate([
     {
       $group: {
@@ -323,6 +326,7 @@ const getInternshipStats = async () => {
     totalProfiles,
     interestedInInternship,
     dutchResidency,
+    graduatedStudents,
     averageScore: averageScore[0]?.averageScore || 0,
     distribution: {
       low: distribution[0]?.low || 0,

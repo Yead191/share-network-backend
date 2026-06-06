@@ -318,11 +318,14 @@ const getAllClassesFromDB = async (
   // Non-admin restrictions
   // -----------------------------
   if (
+    user?.role !== USER_ROLES.SUPER_ADMIN
+  ) {
+    filterConditions.status = true;
+  }
+  if (
     user?.role !== USER_ROLES.SUPER_ADMIN &&
     filterType !== 'upcoming'
   ) {
-    filterConditions.status = true;
-
     if (!filterConditions.classDate) {
       filterConditions.classDate = {};
     }

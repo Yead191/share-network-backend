@@ -12,14 +12,14 @@ export const validateInternshipPayload = (payload: any) => {
     }
 
     // performanceRating validation
-    if (payload.performanceRating == null) {
-        errors.push({ path: "performanceRating", message: "Path performanceRating is required." });
-    } else if (payload.performanceRating < 1 || payload.performanceRating > 5) {
-        errors.push({ path: "performanceRating", message: "Performance rating must be between 1 and 5." });
-    }
+    // if (payload.performanceRating == null) {
+    //     errors.push({ path: "performanceRating", message: "Path performanceRating is required." });
+    // } else if (payload.performanceRating < 1 || payload.performanceRating > 5) {
+    //     errors.push({ path: "performanceRating", message: "Performance rating must be between 1 and 5." });
+    // }
 
     if (errors.length > 0) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "Validation Error", {
+        throw new ApiError(StatusCodes.BAD_REQUEST, errors[0]?.message || "Validation Error, please fill the required fields", {
             errorMessages: errors,
         } as any);
     }
