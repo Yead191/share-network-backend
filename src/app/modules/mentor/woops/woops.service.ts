@@ -5,27 +5,44 @@ import { query } from 'winston';
 
 
 const createwoopFromDB = async (payload: IWoopGoal) => {
-    const woop  = await WoopGoal.create(payload);
+    const woop = await WoopGoal.create(payload);
     if (!woop) {
         throw new Error('Failed to create WOOP goal');
     }
     return woop;
 }
 
-const getUserWoopsFromDB = async (userId: string, query: Record<string, any>) => {
-    const result = await new QueryBuilder(
-        WoopGoal.find({ userId }), query
+
+const getUserWoopsFromDB = async (
+    userId: string,
+    role: string,
+    query: Record<string, any>
+) => {
+    const filter: Record<string, any> = {};
+
+    if (role === 'MENTOR') {
+        filter.mentorId = userId;
+    } else if (role === 'STUDENT') {
+        filter.studentId = userId;
+    }
+
+    let mongoQuery = WoopGoal.find(filter).populate(
+        'studentId',
+        'firstName lastName profile'
+    ).populate(
+        'mentorId',
+        'firstName lastName profile'
     )
-        .populate('userId')
-        .populate('goal')
-        .sort({ createdAt: -1 }); 
 
-    return result;
+    const queryBuilder = new QueryBuilder(mongoQuery, query).sort().paginate();
+    const result = await queryBuilder.queryModel;
+    const pagination = await queryBuilder.getPaginationInfo();
+    return { data: result, pagination };
 };
-
 const getWoopByIdFromDB = async (id: string) => {
     const result = await WoopGoal.findById(id)
-        .populate('userId')
+        .populate('studentId')
+        .populate('mentorId')
         .populate('goal')
         .sort({ createdAt: -1 });
 
@@ -38,17 +55,17 @@ const getWoopByIdFromDB = async (id: string) => {
 
 const getAllUserWoopsFromDB = async (query: Record<string, any>) => {
     const queryBuilder = new QueryBuilder(
-        WoopGoal.find().populate('userId').populate('goal').sort({ createdAt: -1 }),
+        WoopGoal.find().populate('studentId').populate('mentorId').populate('goal').sort({ createdAt: -1 }),
         query
     )
-        .search(['userId', 'goal' , 'status'])
+        .search(['studentId', 'mentorId', 'goal', 'status'])
         .filter()
         .sort()
         .paginate();
 
-    const result = await queryBuilder.queryModel.exec(); 
+    const result = await queryBuilder.queryModel.exec();
 
-    const pagination = await queryBuilder.getPaginationInfo(); 
+    const pagination = await queryBuilder.getPaginationInfo();
 
     return { data: result, pagination };
 };
@@ -57,19 +74,19 @@ const getWoopsIdsFromDB = async (ids: string[]) => {
     const result = await WoopGoal.find({ _id: { $in: objectIds } })
         .populate('userId')
         .populate('goal')
-        .sort({ createdAt: -1 }); 
+        .sort({ createdAt: -1 });
 
     return result;
 }
 
 const updateWoopFromDB = async (id: string, payload: IWoopGoal) => {
     const result = await WoopGoal.findByIdAndUpdate(
-        id, payload, 
+        id, payload,
         {
-             new: true, 
+            new: true,
             runValidators: true
-            }
-        );
+        }
+    );
     return result;
 };
 

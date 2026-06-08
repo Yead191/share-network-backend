@@ -24,10 +24,10 @@ const bulkImportTeachers = async (fileBuffer: Buffer) => {
 
     for (const data of teachersData as any[]) {
         try {
-            const { 
-                FirstName, LastName, Email, Phone, 
-                Company, JobTitle, userGroup, Bio, 
-                Password 
+            const {
+                FirstName, LastName, Email, Phone,
+                Company, JobTitle, userGroup, Bio,
+                Password
             } = data;
 
             if (!Email) continue;
@@ -42,10 +42,10 @@ const bulkImportTeachers = async (fileBuffer: Buffer) => {
 
             if (userGroup) {
                 const groupNames = userGroup.toString().split(',').map((g: string) => g.trim());
-                
+
                 const foundGroups = await UserGroup.find({
                     name: { $in: groupNames }
-                }).select('_id'); 
+                }).select('_id');
 
                 if (foundGroups.length > 0) {
                     userGroupIds = foundGroups.map((group: { _id: any; }) => group._id);
@@ -62,9 +62,9 @@ const bulkImportTeachers = async (fileBuffer: Buffer) => {
                 password: Password ? String(Password) : '11111111',
                 professionalTitle: JobTitle,
                 company: Company,
-                
+
                 userGroup: userGroupIds,
-                
+
                 about: Bio || "",
                 accountInformation: { status: false },
                 isSubscribed: false,
@@ -98,40 +98,40 @@ const bulkImportTeachers = async (fileBuffer: Buffer) => {
 // };
 
 const getAllTeachersFromDB = async (query: Record<string, any>) => {
-  const { userGroup, ...restQuery } = query;
+    const { userGroup, ...restQuery } = query;
 
-  let filter: any = {
-    role: USER_ROLES.TEACHER,
-  };
+    let filter: any = {
+        role: USER_ROLES.TEACHER,
+    };
 
-  if (userGroup) {
-    if (Types.ObjectId.isValid(userGroup)) {
-      filter.userGroup = new Types.ObjectId(userGroup);
-    } else {
-      return [];
+    if (userGroup) {
+        if (Types.ObjectId.isValid(userGroup)) {
+            filter.userGroup = new Types.ObjectId(userGroup);
+        } else {
+            return [];
+        }
     }
-  }
 
-  const teachers = await new QueryBuilder(
-    User.find(filter),
-    restQuery
-  )
-    .search(["firstName", "email"])
-    .filter()
-    .sort()
-    .paginate()
-    .queryModel
-    .populate("userGroup")
-    .populate("userGroupTrack")
-    .populate("assignedStudents")
-    .lean();
+    const teachers = await new QueryBuilder(
+        User.find(filter),
+        restQuery
+    )
+        .search(["firstName", "email"])
+        .filter()
+        .sort()
+        .paginate()
+        .queryModel
+        .populate("userGroup")
+        .populate("userGroupTrack")
+        .populate("assignedStudents")
+        .lean();
 
-  return teachers;
+    return teachers;
 };
 
 const getTeacherById = async (id: string) => {
     const teacher = await User.findById(id)
-    .populate('userGroup');
+        .populate('userGroup');
     if (!teacher || teacher.role !== USER_ROLES.TEACHER) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Teacher not found');
     }
@@ -139,6 +139,13 @@ const getTeacherById = async (id: string) => {
 };
 
 const updateTeacher = async (id: string, updateData: Partial<any>) => {
+    if (!updateData?.userGroup) {
+        updateData.userGroup = null
+    }
+    if (!updateData?.userGroupTrack) {
+        updateData.userGroupTrack = null
+    }
+
     const teacher = await User.findByIdAndUpdate(id, updateData, { new: true });
     if (!teacher || teacher.role !== USER_ROLES.TEACHER) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Teacher not found');

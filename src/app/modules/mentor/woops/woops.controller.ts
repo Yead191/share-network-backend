@@ -1,27 +1,37 @@
 import catchAsync from "../../../../shared/catchAsync";
+import { User } from "../../user/user.model";
 import { WoopService } from "./woops.service";
 
 
 const createwoop = catchAsync(async (req, res) => {
+    // console.log(req?.user)
     const woopData = req.body;
     const userId = req.user.id;
-    woopData.userId = userId;
+    woopData.mentorId = userId;
+    // woopData.studentId = req.body.studentId;
+    const mentor = await User.findById(userId).select('assignedStudents').populate({
+        path: "assignedStudents",
+        select: "_id"
+    })
+    // console.log(mentor);
+    woopData.studentId = mentor?.assignedStudents?.[0]?._id;
     const newWoop = await WoopService.createwoopFromDB(woopData);
     res.status(201).json({
         success: true,
         data: newWoop,
     });
 });
-  
+
 const getUserWoops = catchAsync(async (req, res) => {
-    const id = req.user.id;
-    const woops = await WoopService.getUserWoopsFromDB(id, req.query);
+    const { id, role } = req.user.id;
+    const woops = await WoopService.getUserWoopsFromDB(id, role, req.query);
     res.status(200).json({
         success: true,
-        data: woops,
+        data: woops.data,
+        pagination: woops.pagination
     });
-});     
-const  getAllWoops = catchAsync(async (req, res) => {
+});
+const getAllWoops = catchAsync(async (req, res) => {
     const woops = await WoopService.getAllUserWoopsFromDB(req.query);
     res.status(200).json({
         success: true,

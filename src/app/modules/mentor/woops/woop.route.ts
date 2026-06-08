@@ -20,7 +20,7 @@ router.route("/")
 
 router.route("/:id")
     .get(
-        auth(USER_ROLES.MENTOR),
+        auth(USER_ROLES.MENTOR, USER_ROLES.STUDENT),
         mentorWoops.getUserWoops
     )
     .patch(

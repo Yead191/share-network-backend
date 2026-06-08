@@ -4,16 +4,16 @@ import WoopSectionSchema from "./woops.sub.model";
 
 const WoopGoalSchema = new Schema<IWoopGoal>(
     {
-        userId: {
+        studentId: {
             type: Schema.Types.ObjectId,
             ref: 'User',
             required: true,
         },
-        mentor: {
+        mentorId: {
             type: Schema.Types.ObjectId,
             ref: 'User',
         },
-       goal: {
+        goal: {
             type: Schema.Types.ObjectId,
             ref: 'Goal',
             required: false
@@ -40,7 +40,7 @@ const WoopGoalSchema = new Schema<IWoopGoal>(
             type: WoopSectionSchema,
             required: false,
         },
-       
+
 
         progress: {
             type: Number,

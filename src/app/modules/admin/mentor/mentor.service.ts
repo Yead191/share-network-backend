@@ -174,6 +174,9 @@ const updateMentor = async (id: string, updateData: Partial<any>) => {
   if (!updateData?.assignedStudents) {
     updateData.assignedStudents = null
   }
+  if (!updateData?.userGroupTrack) {
+    updateData.userGroupTrack = null
+  }
   const mentor = await User.findByIdAndUpdate(id, updateData, { new: true });
   const notificationData = {
     text: `updated your profile ${mentor?.assignedStudents}.`,
