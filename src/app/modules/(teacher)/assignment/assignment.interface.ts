@@ -5,7 +5,8 @@ export type IAssignment = {
   teacher: Types.ObjectId;
   published: boolean;
   description: string;
-  userGroup: Types.ObjectId[];
+  userGroup?: Types.ObjectId[];
+  studentAssigned?: Types.ObjectId[];
   userGroupTrack: Types.ObjectId;
   dueDate: Date;
   totalPoint?: number; 

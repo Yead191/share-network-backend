@@ -39,6 +39,12 @@ const assignmentSchema = new Schema<IAssignment, AssignmentModel>(
       },
     ],
 
+    studentAssigned: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     userGroupTrack: {
       type: Schema.Types.ObjectId,
       ref: 'UserGroupTrack',
@@ -69,4 +75,5 @@ const assignmentSchema = new Schema<IAssignment, AssignmentModel>(
   { timestamps: true }
 );
 assignmentSchema.index({ userGroup: 1, userGroupTrack: 1 });
+assignmentSchema.index({ studentAssigned: 1 });
 export const Assignment = model<IAssignment, AssignmentModel>('Assignment', assignmentSchema);

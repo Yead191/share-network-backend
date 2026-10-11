@@ -54,63 +54,73 @@ const getMyAssignmentsFromDB = async (userId: string, query: Record<string, unkn
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found!');
   }
-  // const today = new Date();
-  // today.setHours(0, 0, 0, 0);
-  const assignmentQuery: any = { published: true, dueDate: { $gte: new Date() } };
 
-  const requestedUserGroup = query.userGroup;
-  let requestedUserGroupIds: string[] = [];
+  const assignmentQuery: any = { published: true };
 
-  if (requestedUserGroup) {
-    const rawGroupIds = Array.isArray(requestedUserGroup)
-      ? requestedUserGroup
-      : String(requestedUserGroup)
-        .split(',')
-        .map((value) => value.trim())
-        .filter(Boolean);
-
-    requestedUserGroupIds = rawGroupIds
-      .map((id) => String(id))
-      .filter((id) => Types.ObjectId.isValid(id));
-
-    if (!requestedUserGroupIds.length) {
-      return [];
-    }
-  }
-
+  const userObjectId = new Types.ObjectId(userId);
   const userGroupIds = user.userGroup && user.userGroup.length > 0
     ? user.userGroup.map((g: any) => g._id?.toString() || g.toString())
     : [];
+  const userGroupObjectIds = userGroupIds.map((id) => new Types.ObjectId(id));
 
-  if (requestedUserGroupIds.length) {
-    const userGroupSet = new Set(userGroupIds);
-    const effectiveUserGroupIds = requestedUserGroupIds.filter((id) => userGroupSet.has(id));
+  const orConditions: any[] = [
+    // 1. Directly assigned to student
+    { studentAssigned: userObjectId },
+    // 2. Open to all students
+    {
+      $and: [
+        { $or: [{ studentAssigned: { $size: 0 } }, { studentAssigned: { $exists: false } }] },
+        { $or: [{ userGroup: { $size: 0 } }, { userGroup: { $exists: false } }] },
+      ],
+    },
+  ];
 
-    if (!effectiveUserGroupIds.length) {
-      return [];
-    }
+  // 3. User's group(s)
+  if (userGroupObjectIds.length > 0) {
+    orConditions.push({
+      userGroup: { $in: userGroupObjectIds },
+      $or: [
+        { studentAssigned: { $size: 0 } },
+        { studentAssigned: { $exists: false } },
+        { studentAssigned: userObjectId },
+      ],
+    });
+  }
 
-    assignmentQuery.userGroup = { $in: effectiveUserGroupIds };
-  } else {
-    const orConditions: any[] = [];
+  // 4. User's track
+  if (user.userGroupTrack) {
+    const trackId = user.userGroupTrack._id?.toString() || user.userGroupTrack.toString();
+    orConditions.push({
+      userGroupTrack: new Types.ObjectId(trackId),
+      $or: [
+        { studentAssigned: { $size: 0 } },
+        { studentAssigned: { $exists: false } },
+        { studentAssigned: userObjectId },
+      ],
+    });
+  }
 
-    if (user.userGroupTrack) {
-      const trackId = user.userGroupTrack._id?.toString() || user.userGroupTrack.toString();
-      orConditions.push({ userGroupTrack: trackId });
-    }
+  assignmentQuery.$or = orConditions;
 
-    if (userGroupIds.length > 0) {
-      orConditions.push({ userGroup: { $in: userGroupIds } });
-    }
-
-    if (orConditions.length > 0) {
-      assignmentQuery.$or = orConditions;
-    }
+  // If specific userGroup is queried, match if assignment belongs to that group OR directly assigned to student
+  if (query.userGroup && Types.ObjectId.isValid(query.userGroup as string)) {
+    const reqGroupId = new Types.ObjectId(query.userGroup as string);
+    assignmentQuery.$and = [
+      { $or: orConditions },
+      {
+        $or: [
+          { userGroup: reqGroupId },
+          { studentAssigned: userObjectId },
+        ],
+      },
+    ];
+    delete assignmentQuery.$or;
   }
 
   const result = await Assignment.find(assignmentQuery)
     .populate('teacher', 'firstName lastName profile')
     .populate('userGroup userGroupTrack')
+    .populate('studentAssigned', 'firstName lastName email profile')
     .populate({
       path: 'submitAssignment',
       match: { studentId: userId },

@@ -1,3 +1,6 @@
+import { User } from '../../user/user.model';
+import { emailTemplate } from '../../../../shared/emailTemplate';
+import { emailHelper } from '../../../../helpers/emailHelper';
 import { StatusCodes } from 'http-status-codes';
 import ApiError from '../../../../errors/ApiError';
 import QueryBuilder from '../../../../shared/apiFeature';
@@ -87,7 +90,7 @@ const getAllAssignmentsFromDB = async (query: Record<string, any>) => {
     return { assignments, pagination };
 };
 const getAssignmentByIdFromDB = async (id: string) => {
-  const result = await Assignment.findById(id).populate('userGroup').populate('userGroupTrack');
+  const result = await Assignment.findById(id).populate('userGroup').populate('userGroupTrack').populate('studentAssigned', 'firstName lastName email profile');
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Assignment doesn't exist!");
   }

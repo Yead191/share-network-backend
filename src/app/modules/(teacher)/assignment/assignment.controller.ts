@@ -5,8 +5,55 @@ import sendResponse from '../../../../shared/sendResponse';
 import { AssignmentService } from './assignment.service';
 import { getMultipleFilesPath, getSingleFilePath } from '../../../../shared/getFilePath';
 
+
+const normalizeAssignmentPayload = (body: any) => {
+  const data = { ...body };
+
+  // Normalize userGroup
+  let rawGroup = data.userGroup !== undefined ? data.userGroup : data['userGroup[]'];
+  if (typeof rawGroup === 'string') {
+    try {
+      rawGroup = JSON.parse(rawGroup);
+    } catch {
+      rawGroup = rawGroup.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+  if (rawGroup !== undefined) {
+    data.userGroup = Array.isArray(rawGroup) ? rawGroup : [rawGroup];
+    delete data['userGroup[]'];
+  }
+
+  // Normalize studentAssigned
+  let rawStudents = data.studentAssigned !== undefined ? data.studentAssigned : data['studentAssigned[]'];
+  if (typeof rawStudents === 'string') {
+    try {
+      rawStudents = JSON.parse(rawStudents);
+    } catch {
+      rawStudents = rawStudents.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+  if (rawStudents !== undefined) {
+    data.studentAssigned = Array.isArray(rawStudents) ? rawStudents : [rawStudents];
+    delete data['studentAssigned[]'];
+  }
+
+  if (data.totalPoint !== undefined && data.totalPoint !== '') {
+    data.totalPoint = Number(data.totalPoint);
+  }
+
+  if (data.published !== undefined) {
+    data.published = data.published === true || data.published === 'true';
+  }
+
+  if (!data.userGroupTrack || data.userGroupTrack === 'null' || data.userGroupTrack === 'undefined') {
+    delete data.userGroupTrack;
+  }
+
+  return data;
+};
+
 const createAssignment = catchAsync(async (req: Request, res: Response) => {
-  const { ...assignmentData } = req.body;
+  const assignmentData = normalizeAssignmentPayload(req.body);
   const teacherId = req.user?.id;
   let attachment = getSingleFilePath(req.files, 'attachment');
   if (attachment) {
@@ -50,7 +97,7 @@ const getAssignmentById = catchAsync(async (req: Request, res: Response) => {
 
 const updateAssignment = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { ...updateData } = req.body;
+  const updateData = normalizeAssignmentPayload(req.body);
   const teacherId = req.user?.id;
   let attachment = getSingleFilePath(req.files, 'attachment');
   if (attachment) {

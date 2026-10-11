@@ -131,8 +131,56 @@ ${new Date(values.eventDate).toLocaleString("en-US", {
   return data;
 };
 
+
+const assignmentNotification = (values: {
+  email: string;
+  name: string;
+  title: string;
+  description?: string;
+  dueDate: Date;
+}) => {
+  const data = {
+    to: values.email,
+    subject: `New Assignment: ${values.title}`,
+    html: `
+      <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 20px; color: #555;">
+        <div style="width: 90%; max-width: 400px; margin: 0 auto; padding: 30px; background-color: #fff; border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://i.ibb.co.com/zHrqF4d7/Screenshot-2026-04-11-165229.png" alt="FlxBook Logo" style="width: 150px;" />
+          </div>
+          <h2 style="color: #3389d0; font-size: 26px; text-align: center; margin-bottom: 25px; font-weight: bold;">Hey, ${values.name}!</h2>
+          <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 20px;">You have a new assignment assigned to you!</p>
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+            <h3 style="color: #3389d0; font-size: 20px; margin-bottom: 15px; text-align: center;">${values.title}</h3>
+            ${values.description ? `<p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 10px;">${values.description}</p>` : ""}
+            ${
+              values.dueDate
+                ? `<p style="color: #555; font-size: 14px; line-height: 1.5; margin-bottom: 5px;"><strong>Due Date:</strong> ${new Date(values.dueDate).toLocaleString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}</p>`
+                : ""
+            }
+          </div>
+          <div style="text-align: center; margin-bottom: 30px;">
+            <p style="color: #555; font-size: 16px; line-height: 1.5;">Please log in to your dashboard to complete the assignment.</p>
+          </div>
+          <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px;">This is an automated notification. Please contact support if you have any questions.</p>
+          <p style="color: #999; font-size: 12px; text-align: center;">&copy; 2024 FlxBook. All rights reserved.</p>
+        </div>
+      </body>
+    `,
+  };
+  return data;
+};
+
 export const emailTemplate = {
   createAccount,
   resetPassword,
   eventInvitation,
+  assignmentNotification,
 };
