@@ -64,9 +64,10 @@ export async function main() {
         socketHelper.socket(io);
 
 
-        // Store in global for graceful shutdown
+        // Store in global for graceful shutdown and notification helpers
         global.httpServer = server;
         global.socketServer = io;
+        (global as any).io = io;
 
         // Notify master that worker is ready
         if (cluster.worker) {
