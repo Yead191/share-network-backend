@@ -9,35 +9,50 @@ import { requestLogger } from "./shared/response.time.logger";
 import path from "path";
 import { logger } from "./shared/logger";
 const app = express();
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://72.61.74.10:4173",
-        "https://web.share-network.org",
-        "https://app.share-network.org",
-        "http://localhost:4173",
-        "http://10.10.7.6:4173",
-        "http://localhost:4173",
-        "http://10.10.7.72:4173",
-        "http://10.10.7.9:4173",
-        "http://10.10.7.50:4173",
-      ];
+const allowedOrigins = [
+  "https://web.share-network.org",
+  "https://app.share-network.org",
+  "http://72.61.74.10:4173",
+  "http://localhost:4173",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://10.10.7.6:4173",
+  "http://10.10.7.72:4173",
+  "http://10.10.7.9:4173",
+  "http://10.10.7.50:4173",
+];
 
-      if (!origin) return callback(null, true);
+const corsOptions: cors.CorsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        logger.warn(`Blocked by CORS: ${origin}`);
-        callback(null, false);
-      }
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  }),
-);
+    const cleanOrigin = origin.replace(/\/$/, "");
+    if (
+      allowedOrigins.includes(cleanOrigin) ||
+      cleanOrigin.endsWith(".share-network.org") ||
+      /^http:\/\/localhost(:\d+)?$/.test(cleanOrigin)
+    ) {
+      callback(null, true);
+    } else {
+      logger.warn(`Blocked by CORS: ${origin}`);
+      callback(null, false);
+    }
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "Cache-Control",
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 //debug
 app.use(requestLogger());
 // morgan
