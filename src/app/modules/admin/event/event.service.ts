@@ -6,24 +6,37 @@ import { Event } from "./event.model";
 import { User } from "../../user/user.model";
 import { emailTemplate } from "../../../../shared/emailTemplate";
 import { emailHelper } from "../../../../helpers/emailHelper";
+import { NotificationServices } from "../../notification/notification.service";
 
 const createEventFromDB = async (payload: Partial<IEvent>) => {
   // Create the event first
   const event = await Event.create(payload);
-  // console.log(event);
-  let students;
-  if (!payload.studentAssigned || payload.studentAssigned.length === 0) {
-    students = await User.find({ role: "STUDENT" }, "email firstName lastName");
-  } else {
-    students = await User.find(
-      { _id: { $in: payload.studentAssigned } },
-      "email firstName lastName",
-    );
+
+  let studentFilter: Record<string, any> = { role: "STUDENT" };
+  if (payload.studentAssigned && payload.studentAssigned.length > 0) {
+    studentFilter = { _id: { $in: payload.studentAssigned } };
+  } else if (payload.targetGroup || payload.group) {
+    studentFilter = {
+      role: "STUDENT",
+      userGroup: payload.targetGroup || payload.group,
+    };
+    if (payload.targetTrack) {
+      studentFilter.userGroupTrack = payload.targetTrack;
+    }
+  } else if (payload.targetTrack) {
+    studentFilter = {
+      role: "STUDENT",
+      userGroupTrack: payload.targetTrack,
+    };
   }
 
-  // Send emails in background without blocking the response
+  const students = await User.find(
+    studentFilter,
+    "email firstName lastName _id",
+  );
+
+  // Send emails and in-app notifications in background without blocking the response
   if (students.length > 0) {
-    // Use setImmediate to run email sending in background
     setImmediate(async () => {
       try {
         const emailPromises = students.map((student) => {
@@ -41,12 +54,28 @@ const createEventFromDB = async (payload: Partial<IEvent>) => {
           return Promise.resolve();
         });
 
-        await Promise.all(emailPromises);
-        // console.log(
-        //   `Sent ${emailPromises.length} event invitation emails in background`,
-        // );
+        const eventDateStr = event.date
+          ? new Date(event.date).toLocaleDateString()
+          : "";
+
+        const notificationPromises = students.map((student) =>
+          NotificationServices.createNotification({
+            receiver: student._id,
+            title: `New Event: ${event.title}`,
+            message:
+              event.description ||
+              `You have been invited to event "${event.title}"${eventDateStr ? ` on ${eventDateStr}` : ""}.`,
+            type: "EVENT",
+            refId: event._id as any,
+            path: "/student/events",
+            seen: false,
+            read: false,
+          }),
+        );
+
+        await Promise.all([...emailPromises, ...notificationPromises]);
       } catch (error) {
-        console.error("Error sending background emails:", error);
+        console.error("Error sending background event notifications/emails:", error);
       }
     });
   }

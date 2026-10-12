@@ -8,6 +8,7 @@ import { RecentActivity } from "../recentActivities/recentActivity.model";
 import { UserGroup } from "../../user-group/user-group.model";
 import { UserGroupTrack } from "../../user-group/user-group-track/user-group-track.model";
 import { User } from "../../user/user.model";
+import { NotificationServices } from "../../notification/notification.service";
 import dayjs from "dayjs";
 import { JwtPayload } from "jsonwebtoken";
 import { USER_ROLES } from "../../../../enums/user";
@@ -21,6 +22,60 @@ const createClassToDB = async (payload: IClass) => {
     type: 'CLASS',
     user: result.teacher,
     referenceId: result._id,
+  });
+
+  // Targeted students filter for class schedule
+  let studentFilter: Record<string, any> = { role: "STUDENT" };
+  const assignedList = payload.studentAssigned || payload.studentId;
+
+  if (assignedList && (Array.isArray(assignedList) ? assignedList.length > 0 : Boolean(assignedList))) {
+    const ids = Array.isArray(assignedList) ? assignedList : [assignedList];
+    studentFilter = { _id: { $in: ids } };
+  } else if (payload.userGroup && (Array.isArray(payload.userGroup) ? payload.userGroup.length > 0 : Boolean(payload.userGroup))) {
+    studentFilter = {
+      role: "STUDENT",
+      userGroup: { $in: Array.isArray(payload.userGroup) ? payload.userGroup : [payload.userGroup] },
+    };
+    if (payload.userGroupTrack) {
+      studentFilter.userGroupTrack = payload.userGroupTrack;
+    }
+  } else if (payload.userGroupTrack) {
+    studentFilter = {
+      role: "STUDENT",
+      userGroupTrack: payload.userGroupTrack,
+    };
+  }
+
+  // Send notifications in background
+  setImmediate(async () => {
+    try {
+      const students = await User.find(studentFilter).select("_id").lean();
+      if (students && students.length > 0) {
+        const classDateStr = result.classDate
+          ? new Date(result.classDate).toLocaleDateString()
+          : "";
+        const classType = result.virtualClass ? "Virtual Class" : "Class";
+        await Promise.all(
+          students.map((student) =>
+            NotificationServices.createNotification({
+              receiver: student._id,
+              sender: (result.teacher as any)?._id || (result.teacher as any) || null,
+              title: `New Schedule: ${result.title}`,
+              message:
+                result.description ||
+                `A new ${classType.toLowerCase()} "${result.title}" has been scheduled${classDateStr ? ` on ${classDateStr}` : ""}.`,
+              type: "SCHEDULE",
+              refId: result._id,
+              path: "/student/schedule",
+              seen: false,
+              read: false,
+            }),
+          ),
+        );
+      }
+    } catch (error) {
+      console.error("Error sending class schedule notifications:", error);
+    }
   });
 
   const populated = await Class.findById(result._id)

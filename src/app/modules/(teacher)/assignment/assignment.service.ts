@@ -10,6 +10,7 @@ import { UserGroupTrack } from "../../user-group/user-group-track/user-group-tra
 import { UserGroup } from "../../user-group/user-group.model";
 import { RecentActivity } from "../recentActivities/recentActivity.model";
 import { AssignmentsSub } from "../../students/assignments/assignmentsSub.model";
+import { NotificationServices } from "../../notification/notification.service";
 import mongoose from "mongoose";
 
 const createAssignmentToDB = async (payload: IAssignment) => {
@@ -43,6 +44,56 @@ const createAssignmentToDB = async (payload: IAssignment) => {
     type: "ASSIGNMENT",
     user: result.teacher,
     referenceId: result._id,
+  });
+
+  // Targeted students filter
+  let studentFilter: Record<string, any> = { role: "STUDENT" };
+  if (payload.studentAssigned && payload.studentAssigned.length > 0) {
+    studentFilter = { _id: { $in: payload.studentAssigned } };
+  } else if (payload.userGroup && payload.userGroup.length > 0) {
+    studentFilter = {
+      role: "STUDENT",
+      userGroup: { $in: payload.userGroup },
+    };
+    if (payload.userGroupTrack) {
+      studentFilter.userGroupTrack = payload.userGroupTrack;
+    }
+  } else if (payload.userGroupTrack) {
+    studentFilter = {
+      role: "STUDENT",
+      userGroupTrack: payload.userGroupTrack,
+    };
+  }
+
+  // Send notifications in background
+  setImmediate(async () => {
+    try {
+      const students = await User.find(studentFilter).select("_id").lean();
+      if (students && students.length > 0) {
+        const dueDateStr = result.dueDate
+          ? new Date(result.dueDate).toLocaleDateString()
+          : "";
+        await Promise.all(
+          students.map((student) =>
+            NotificationServices.createNotification({
+              receiver: student._id,
+              sender: result.teacher,
+              title: `New Assignment: ${result.title}`,
+              message:
+                result.description ||
+                `You have a new assignment "${result.title}"${dueDateStr ? ` due on ${dueDateStr}` : ""}.`,
+              type: "ASSIGNMENT",
+              refId: result._id,
+              path: "/student/assignment",
+              seen: false,
+              read: false,
+            }),
+          ),
+        );
+      }
+    } catch (error) {
+      console.error("Error sending assignment notifications:", error);
+    }
   });
 
   return result;

@@ -70,15 +70,10 @@ const createNotification = async (data: Partial<INotification>) => {
     }
   }
 
-  // Real-time socket emissions
+  // Real-time socket emissions (single targeted event)
   if (io && data.receiver) {
     const receiverId = data.receiver.toString();
-    // Primary event for dashboard
     io.emit(`getNotification::${receiverId}`, result);
-    io.to(receiverId).emit(`getNotification::${receiverId}`, result);
-    // Legacy events
-    io.emit(`get-notification::${receiverId}`, result);
-    io.emit('notification', result);
   }
 
   return result;

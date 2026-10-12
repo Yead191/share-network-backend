@@ -4,46 +4,70 @@ import { ILearningMaterial } from "./learning.interface";
 import { LearningMaterial } from "./learning.model";
 import QueryBuilder from "../../../../shared/apiFeature";
 import { User } from "../../user/user.model";
-import { sendNotifications } from "../../../../helpers/notificationsHelper";
-import { socketHelper } from "../../../../helpers/socketHelper";
+import { NotificationServices } from "../../notification/notification.service";
 import { UserGroupTrack } from "../../user-group/user-group-track/user-group-track.model";
 import mongoose from "mongoose";
 const { Types } = mongoose;
 
 const createResourceFromDB = async (payload: ILearningMaterial) => {
   const resource = await LearningMaterial.create(payload);
-  const baseText = `new resource added ${resource.title}.`;
 
-  const receiverFilter = resource.targertGroup
-    ? { role: "STUDENT", userGroup: resource.targertGroup }
-    : { role: resource.targeteAudience };
+  const receiverFilter: Record<string, any> = {};
 
-  const receivers = await User.find(receiverFilter).select("_id").lean();
-
-  if (receivers.length) {
-    await Promise.all(
-      receivers.map((receiver) =>
-        sendNotifications({
-          text: baseText,
-          receiver: receiver._id,
-          type: resource.targeteAudience.includes("MENTOR") ? "MENTOR" : "STUDENT",
-        }),
-      ),
-    );
+  if (resource.targeteAudience && resource.targeteAudience.length > 0) {
+    receiverFilter.role = { $in: resource.targeteAudience };
+  } else {
+    receiverFilter.role = "STUDENT";
   }
 
-  const io = (
-    socketHelper as {
-      getIO?: () => { emit: (event: string, data: unknown) => void };
+  if (
+    resource.targertGroup &&
+    (Array.isArray(resource.targertGroup)
+      ? resource.targertGroup.length > 0
+      : Boolean(resource.targertGroup))
+  ) {
+    receiverFilter.userGroup = {
+      $in: Array.isArray(resource.targertGroup)
+        ? resource.targertGroup
+        : [resource.targertGroup],
+    };
+  }
+
+  if (resource.targetTrack) {
+    receiverFilter.userGroupTrack = resource.targetTrack;
+  }
+
+  // Send notifications in background
+  setImmediate(async () => {
+    try {
+      const receivers = await User.find(receiverFilter).select("_id").lean();
+      if (receivers.length) {
+        await Promise.all(
+          receivers.map((receiver) =>
+            NotificationServices.createNotification({
+              receiver: receiver._id,
+              sender: resource.createdBy,
+              title: `New Learning Material: ${resource.title}`,
+              message:
+                resource.description ||
+                `A new learning resource "${resource.title}" has been published.`,
+              text: `New resource added: ${resource.title}.`,
+              type: "LEARNING",
+              refId: resource._id,
+              path: "/student/resources",
+              seen: false,
+              read: false,
+            }),
+          ),
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Error sending learning material notifications:",
+        error,
+      );
     }
-  ).getIO?.();
-  if (io) {
-    io.emit("notification", {
-      text: baseText,
-      receiverCount: receivers.length,
-      targetRole: resource.targertGroup ? "STUDENT" : resource.targeteAudience,
-    });
-  }
+  });
 
   return resource;
 };
