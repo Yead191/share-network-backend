@@ -2,8 +2,10 @@ node_modules
 .env
 uploads
 /winston
+temp_auto_push.bat
 .github/workflows/SETUP_GUIDE.md
 src/firebaseSDK.json
 branch_structure.json
 
 
+.gitignore
