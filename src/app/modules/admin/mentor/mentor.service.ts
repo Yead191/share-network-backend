@@ -1,26 +1,27 @@
-import xlsx from 'xlsx';
-import { StatusCodes } from 'http-status-codes';
-import ApiError from '../../../../errors/ApiError';
-import { User } from '../../user/user.model';
-import { USER_ROLES } from '../../../../enums/user';
-import { UserGroup } from '../../user-group/user-group.model';
-import { IStudentReview } from '../students/management/students.interface';
-import { StudentProfile } from '../students/management/students.model';
-import QueryBuilder from '../../../../shared/apiFeature';
-import { query } from 'express';
-import { assign } from 'nodemailer/lib/shared';
-import { socketHelper } from '../../../../helpers/socketHelper';
-import { sendNotifications } from '../../../../helpers/notificationsHelper';
-import { Types } from 'mongoose';
+import xlsx from "xlsx";
+import { StatusCodes } from "http-status-codes";
+import ApiError from "../../../../errors/ApiError";
+import { User } from "../../user/user.model";
+import { USER_ROLES } from "../../../../enums/user";
+import { UserGroup } from "../../user-group/user-group.model";
+import { IStudentReview } from "../students/management/students.interface";
+import { StudentProfile } from "../students/management/students.model";
+import QueryBuilder from "../../../../shared/apiFeature";
+import { query } from "express";
+import { assign } from "nodemailer/lib/shared";
+import { socketHelper } from "../../../../helpers/socketHelper";
+import { sendNotifications } from "../../../../helpers/notificationsHelper";
+import { Types } from "mongoose";
+import { JwtPayload } from "jsonwebtoken";
 
 const bulkImportMentors = async (fileBuffer: Buffer) => {
-  const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+  const workbook = xlsx.read(fileBuffer, { type: "buffer" });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   const mentorsData = xlsx.utils.sheet_to_json(sheet);
 
   if (!mentorsData.length) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Excel file is empty');
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Excel file is empty");
   }
 
   const createdUsers = [];
@@ -29,9 +30,15 @@ const bulkImportMentors = async (fileBuffer: Buffer) => {
   for (const data of mentorsData as any[]) {
     try {
       const {
-        FirstName, LastName, Email, Phone,
-        Company, JobTitle, userGroup, Bio,
-        Password
+        FirstName,
+        LastName,
+        Email,
+        Phone,
+        Company,
+        JobTitle,
+        userGroup,
+        Bio,
+        Password,
       } = data;
 
       if (!Email) continue;
@@ -45,14 +52,17 @@ const bulkImportMentors = async (fileBuffer: Buffer) => {
       let userGroupIds: any[] = [];
 
       if (userGroup) {
-        const groupNames = userGroup.toString().split(',').map((g: string) => g.trim());
+        const groupNames = userGroup
+          .toString()
+          .split(",")
+          .map((g: string) => g.trim());
 
         const foundGroups = await UserGroup.find({
-          name: { $in: groupNames }
-        }).select('_id');
+          name: { $in: groupNames },
+        }).select("_id");
 
         if (foundGroups.length > 0) {
-          userGroupIds = foundGroups.map((group: { _id: any; }) => group._id);
+          userGroupIds = foundGroups.map((group: { _id: any }) => group._id);
         } else {
           errors.push(`User group(s) not found: ${userGroup}`);
         }
@@ -63,7 +73,7 @@ const bulkImportMentors = async (fileBuffer: Buffer) => {
         email: Email,
         mobileNumber: Phone?.toString(),
         role: USER_ROLES.MENTOR,
-        password: Password ? String(Password) : '11111111',
+        password: Password ? String(Password) : "11111111",
         professionalTitle: JobTitle,
         company: Company,
 
@@ -74,12 +84,11 @@ const bulkImportMentors = async (fileBuffer: Buffer) => {
         isSubscribed: false,
         isUpdate: false,
         verified: true,
-        discount: 0
+        discount: 0,
       };
 
       const newUser = await User.create(userData);
       createdUsers.push(newUser);
-
     } catch (err: any) {
       errors.push(`Error for ${data?.Email}: ${err.message}`);
     }
@@ -89,7 +98,7 @@ const bulkImportMentors = async (fileBuffer: Buffer) => {
     importedCount: createdUsers.length,
     errorCount: errors.length,
     errors: errors,
-    message: 'Bulk import process completed'
+    message: "Bulk import process completed",
   };
 };
 
@@ -125,20 +134,23 @@ const getAllMentorsFromDB = async (query: any) => {
   if (company) {
     filter.company = {
       $regex: company,
-      $options: 'i',
+      $options: "i",
     };
   }
 
   const qb = new QueryBuilder(User.find(filter), restQuery)
-    .search(['firstName', 'lastName', 'email', 'company'])
+    .search(["firstName", "lastName", "email", "company"])
     .filter()
     .sort()
     .paginate();
 
   const mentors = await qb.queryModel
-    .populate('userGroup')
-    .populate('assignedStudents', 'firstName lastName email profile contact location')
-    .populate('userGroupTrack', 'name');
+    .populate("userGroup")
+    .populate(
+      "assignedStudents",
+      "firstName lastName email profile contact location",
+    )
+    .populate("userGroupTrack", "name");
 
   const pagination = await qb.getPaginationInfo();
 
@@ -146,63 +158,74 @@ const getAllMentorsFromDB = async (query: any) => {
 };
 const getMentorById = async (id: string) => {
   const mentor = await User.findById(id)
-    .populate('userGroup')
+    .populate("userGroup")
     .populate({
-      path: 'assignedStudents',
+      path: "assignedStudents",
       populate: [
         {
-          path: 'userGroup',
-          select: '_id name',
+          path: "userGroup",
+          select: "_id name",
         },
         {
-          path: 'userGroupTrack',
-          select: '_id name',
+          path: "userGroupTrack",
+          select: "_id name",
         },
         {
-          path: 'Goals',
-          select: '_id title description',
+          path: "Goals",
+          select: "_id title description",
         },
       ],
-    })
+    });
   if (!mentor || mentor.role !== USER_ROLES.MENTOR) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Mentor not found');
+    throw new ApiError(StatusCodes.NOT_FOUND, "Mentor not found");
   }
   return mentor;
 };
 
-const updateMentor = async (id: string, updateData: Partial<any>) => {
+const updateMentor = async (
+  id: string,
+  updateData: Partial<any>,
+  user: JwtPayload,
+) => {
   if (!updateData?.assignedStudents) {
-    updateData.assignedStudents = null
+    updateData.assignedStudents = null;
   }
   if (!updateData?.userGroupTrack) {
-    updateData.userGroupTrack = null
+    updateData.userGroupTrack = null;
   }
   const mentor = await User.findByIdAndUpdate(id, updateData, { new: true });
   const notificationData = {
     text: `updated your profile ${mentor?.assignedStudents}.`,
-    receiver: mentor,
-    sender: 'admin',
+    receiver: mentor?._id,
+    sender: user.id,
     type: "MENTOR",
     targetRole: mentor?.userGroup ? "STUDENT" : mentor?.assignedStudents,
   };
-  const io = (socketHelper as { getIO?: () => { emit: (event: string, data: unknown) => void } }).getIO?.();
+  const io = (
+    socketHelper as {
+      getIO?: () => { emit: (event: string, data: unknown) => void };
+    }
+  ).getIO?.();
   if (io) {
     io.emit("notification", notificationData);
   }
   sendNotifications(notificationData);
   if (!mentor || mentor.role !== USER_ROLES.MENTOR) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Mentor not found');
+    throw new ApiError(StatusCodes.NOT_FOUND, "Mentor not found");
   }
   return mentor;
 };
 
-const addReviewToStudent = async (userId: string, reviewData: IStudentReview) => {
+const addReviewToStudent = async (
+  userId: string,
+  reviewData: IStudentReview,
+) => {
   const result = await User.findByIdAndUpdate(
     userId,
     {
       $push: { reviews: reviewData },
     },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
   return result;
 };
@@ -210,15 +233,15 @@ const addReviewToStudent = async (userId: string, reviewData: IStudentReview) =>
 const deleteMentor = async (id: string) => {
   const mentor = await User.findByIdAndDelete(id);
   if (!mentor || mentor.role !== USER_ROLES.MENTOR) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Mentor not found');
+    throw new ApiError(StatusCodes.NOT_FOUND, "Mentor not found");
   }
   return mentor;
-}
+};
 
 export const UserService = {
   bulkImportMentors,
   getAllMentorsFromDB,
   getMentorById,
   updateMentor,
-  deleteMentor
+  deleteMentor,
 };
