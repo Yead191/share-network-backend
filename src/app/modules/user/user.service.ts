@@ -123,13 +123,35 @@ const updateprofileByIdToDB = async (
     }
   }
   if (payload.mentorId) {
-    await User.findByIdAndUpdate(
-      payload.mentorId,
-      {
-        $push: { assignedStudents: id },
-      },
+    const studentObjectId = new Types.ObjectId(id);
+    const mentorId = payload.mentorId;
+
+    // Remove student from previous mentor if switching mentors
+    const currentStudent = await User.findById(id).select("mentorId");
+    if (
+      currentStudent?.mentorId &&
+      currentStudent.mentorId.toString() !== mentorId.toString()
+    ) {
+      await User.findByIdAndUpdate(currentStudent.mentorId, {
+        $pull: { assignedStudents: studentObjectId },
+      });
+    }
+
+    // Attempt to add student via $addToSet if assignedStudents is an array
+    const updatedMentor = await User.findOneAndUpdate(
+      { _id: mentorId, assignedStudents: { $type: "array" } },
+      { $addToSet: { assignedStudents: studentObjectId } },
       { new: true },
     );
+
+    // If mentor's assignedStudents was null or missing, initialize as an array
+    if (!updatedMentor) {
+      await User.findByIdAndUpdate(
+        mentorId,
+        { $set: { assignedStudents: [studentObjectId] } },
+        { new: true },
+      );
+    }
   }
   const result = await User.findByIdAndUpdate(id, payload, { new: true });
   return result;

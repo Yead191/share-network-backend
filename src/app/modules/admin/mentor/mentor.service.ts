@@ -187,11 +187,13 @@ const updateMentor = async (
   updateData: Partial<any>,
   user: JwtPayload,
 ) => {
-  if (!updateData?.assignedStudents) {
-    updateData.assignedStudents = null;
+  if (updateData?.assignedStudents === undefined) {
+    delete updateData.assignedStudents;
+  } else if (updateData?.assignedStudents === null) {
+    updateData.assignedStudents = [];
   }
-  if (!updateData?.userGroupTrack) {
-    updateData.userGroupTrack = null;
+  if (updateData?.userGroupTrack === undefined) {
+    delete updateData.userGroupTrack;
   }
   const mentor = await User.findByIdAndUpdate(id, updateData, { new: true });
   const notificationData = {
