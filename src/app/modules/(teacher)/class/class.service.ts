@@ -7,15 +7,13 @@ import { Types } from "mongoose";
 import { RecentActivity } from "../recentActivities/recentActivity.model";
 import { UserGroup } from "../../user-group/user-group.model";
 import { UserGroupTrack } from "../../user-group/user-group-track/user-group-track.model";
+import { User } from "../../user/user.model";
 import dayjs from "dayjs";
 import { JwtPayload } from "jsonwebtoken";
 import { USER_ROLES } from "../../../../enums/user";
 
 const createClassToDB = async (payload: IClass) => {
-
   const result = await Class.create(payload);
-
-  // console.log('Created Class teacher field:', result.teacher);
 
   await RecentActivity.create({
     title: result.title,
@@ -25,11 +23,20 @@ const createClassToDB = async (payload: IClass) => {
     referenceId: result._id,
   });
 
-
   const populated = await Class.findById(result._id)
-    .select('file title description classDate location virtualClass status published userGroup userGroupTrack studentId teacher')
+    .select('file title description classDate location virtualClass status published userGroup userGroupTrack studentId studentAssigned teacher slideUrl')
     .populate({
       path: 'teacher',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    })
+    .populate({
+      path: 'studentAssigned',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    })
+    .populate({
+      path: 'studentId',
       select: 'firstName lastName email profile',
       model: 'User',
     })
@@ -44,180 +51,7 @@ const createClassToDB = async (payload: IClass) => {
 
   return populated;
 };
-// const getAllClassesFromDB = async (query: Record<string, any>) => {
-//   const queryData = { ...query };
-//   const filterConditions: Record<string, any> = {};
-//   const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
 
-//   const page = Math.max(Number(queryData.page) || 1, 1);
-//   const parsedLimit = Number(queryData.limit);
-//   const limit = queryData.limit !== undefined && parsedLimit === 0 ? 0 : parsedLimit || 10;
-
-//   delete queryData.searchTerm;
-
-//   if (queryData.userGroup) {
-//     const userGroupValues = Array.isArray(queryData.userGroup)
-//       ? queryData.userGroup
-//       : String(queryData.userGroup).split(',').map((value) => value.trim()).filter(Boolean);
-
-//     const validUserGroupIds = userGroupValues.filter((id) => Types.ObjectId.isValid(id));
-
-//     if (!validUserGroupIds.length) {
-//       return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
-//     }
-
-//     filterConditions.userGroup = { $in: validUserGroupIds.map((id) => new Types.ObjectId(id)) };
-//   }
-
-//   if (queryData.userGroupTrack) {
-//     const userGroupTrackId = String(queryData.userGroupTrack).trim();
-//     if (!Types.ObjectId.isValid(userGroupTrackId)) {
-//       return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
-//     }
-
-//     filterConditions.userGroupTrack = new Types.ObjectId(userGroupTrackId);
-//   }
-
-//   delete queryData.userGroup;
-//   delete queryData.userGroupTrack;
-
-//   const baseQuery = Class.find(filterConditions);
-
-//   const result = new QueryBuilder(baseQuery, queryData)
-//     .filter()
-//     .sort()
-//     .paginate();
-
-//   if (searchTerm) {
-//     const searchConditions: Record<string, any>[] = [
-//       { title: { $regex: searchTerm, $options: 'i' } },
-//       { location: { $regex: searchTerm, $options: 'i' } },
-//       { description: { $regex: searchTerm, $options: 'i' } },
-//     ];
-
-//     const [matchedGroups, matchedTracks] = await Promise.all([
-//       UserGroup.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
-//       UserGroupTrack.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
-//     ]);
-
-//     const matchedGroupIds = matchedGroups.map((group) => group._id);
-//     const matchedTrackIds = matchedTracks.map((track) => track._id);
-
-//     if (matchedGroupIds.length) {
-//       searchConditions.push({ userGroup: { $in: matchedGroupIds } });
-//     }
-
-//     if (matchedTrackIds.length) {
-//       searchConditions.push({ userGroupTrack: { $in: matchedTrackIds } });
-//     }
-
-//     const existingQuery = result.queryModel.getQuery();
-//     result.queryModel = result.queryModel.find({
-//       $and: [existingQuery, { $or: searchConditions }],
-//     });
-//   }
-
-//   const classes = await result.queryModel
-//     .populate({
-//       path: 'userGroup',
-//       select: 'name',
-//     })
-//     .populate({
-//       path: 'userGroupTrack',
-//       select: 'name',
-//     })
-//     .populate({
-//       path: 'studentId',
-//       select: 'firstName lastName email profile',
-//       model: 'User',
-//     })
-//     .populate({
-//       path: 'teacher',
-//       select: 'firstName lastName email profile',
-//       model: 'User',
-//     });
-
-//   const pagination = await result.getPaginationInfo();
-//   return { classes, pagination };
-// };
-// const getAllClassesFromDB = async (query: Record<string, any>) => {
-//   const queryData = { ...query };
-//   const filterConditions: Record<string, any> = {};
-//   const searchTerm = typeof queryData.searchTerm === 'string' ? queryData.searchTerm.trim() : '';
-
-//   const page = Math.max(Number(queryData.page) || 1, 1);
-//   const parsedLimit = Number(queryData.limit);
-//   const limit = queryData.limit !== undefined && parsedLimit === 0 ? 0 : parsedLimit || 10;
-
-//   if (!queryData.sort) {
-//     queryData.sort = '-classDate'; 
-//   }
-
-//   delete queryData.searchTerm;
-
-//   if (queryData.userGroup) {
-//     const userGroupValues = Array.isArray(queryData.userGroup)
-//       ? queryData.userGroup
-//       : String(queryData.userGroup).split(',').map((value) => value.trim()).filter(Boolean);
-
-//     const validUserGroupIds = userGroupValues.filter((id) => Types.ObjectId.isValid(id));
-//     if (!validUserGroupIds.length) {
-//       return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
-//     }
-//     filterConditions.userGroup = { $in: validUserGroupIds.map((id) => new Types.ObjectId(id)) };
-//   }
-
-//   if (queryData.userGroupTrack) {
-//     const userGroupTrackId = String(queryData.userGroupTrack).trim();
-//     if (!Types.ObjectId.isValid(userGroupTrackId)) {
-//       return { pagination: { total: 0, totalPage: 1, page, limit }, classes: [] };
-//     }
-//     filterConditions.userGroupTrack = new Types.ObjectId(userGroupTrackId);
-//   }
-
-//   delete queryData.userGroup;
-//   delete queryData.userGroupTrack;
-
-//   const baseQuery = Class.find(filterConditions);
-
-//   const result = new QueryBuilder(baseQuery, queryData)
-//     .filter()
-//     .sort()
-//     .paginate();
-
-//   if (searchTerm) {
-//     const searchConditions: Record<string, any>[] = [
-//       { title: { $regex: searchTerm, $options: 'i' } },
-//       { location: { $regex: searchTerm, $options: 'i' } },
-//       { description: { $regex: searchTerm, $options: 'i' } },
-//     ];
-
-//     const [matchedGroups, matchedTracks] = await Promise.all([
-//       UserGroup.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
-//       UserGroupTrack.find({ name: { $regex: searchTerm, $options: 'i' } }).select('_id').lean(),
-//     ]);
-
-//     const matchedGroupIds = matchedGroups.map((group) => group._id);
-//     const matchedTrackIds = matchedTracks.map((track) => track._id);
-
-//     if (matchedGroupIds.length) searchConditions.push({ userGroup: { $in: matchedGroupIds } });
-//     if (matchedTrackIds.length) searchConditions.push({ userGroupTrack: { $in: matchedTrackIds } });
-
-//     const existingQuery = result.queryModel.getQuery();
-//     result.queryModel = result.queryModel.find({
-//       $and: [existingQuery, { $or: searchConditions }],
-//     });
-//   }
-
-//   const classes = await result.queryModel
-//     .populate({ path: 'userGroup', select: 'name' })
-//     .populate({ path: 'userGroupTrack', select: 'name' })
-//     .populate({ path: 'studentId', select: 'firstName lastName email profile', model: 'User' })
-//     .populate({ path: 'teacher', select: 'firstName lastName email profile', model: 'User' });
-
-//   const pagination = await result.getPaginationInfo();
-//   return { classes, pagination };
-// };
 const getAllClassesFromDB = async (
   query: Record<string, any>,
   user: JwtPayload,
@@ -252,7 +86,6 @@ const getAllClassesFromDB = async (
     filterConditions.classDate = {
       $gte: today,
     };
-
     queryData.sort ||= 'classDate';
   }
 
@@ -260,70 +93,132 @@ const getAllClassesFromDB = async (
     filterConditions.classDate = {
       $lt: today,
     };
-
     queryData.sort ||= '-classDate';
   }
 
   // -----------------------------
-  // User Group Filter
+  // Student Target Check (Student Role or Query studentId)
   // -----------------------------
-  if (queryData.userGroup) {
-    const groupIds = (
-      Array.isArray(queryData.userGroup)
-        ? queryData.userGroup
-        : String(queryData.userGroup).split(',')
-    )
-      .map((id: string) => id.trim())
-      .filter((id: string) => Types.ObjectId.isValid(id));
+  const studentTargetId = queryData.studentId || (user?.role === USER_ROLES.STUDENT ? user?.id : undefined);
 
-    if (!groupIds.length) {
-      return {
-        classes: [],
-        pagination: {
-          total: 0,
-          totalPage: 1,
-          page,
-          limit,
+  if (studentTargetId) {
+    const studentUser = await User.findById(studentTargetId).lean();
+    if (studentUser) {
+      const studentObjId = new Types.ObjectId(String(studentTargetId));
+      const studentGroupIds = studentUser.userGroup && studentUser.userGroup.length > 0
+        ? studentUser.userGroup.map((g: any) => new Types.ObjectId(g._id?.toString() || g.toString()))
+        : [];
+      const studentTrackId = studentUser.userGroupTrack
+        ? new Types.ObjectId(studentUser.userGroupTrack.toString())
+        : undefined;
+
+      const studentConditions: any[] = [
+        // 1. Direct assignment
+        { studentAssigned: studentObjId },
+        { studentId: studentObjId },
+        // 2. Open to all students
+        {
+          $and: [
+            { $or: [{ userGroup: { $size: 0 } }, { userGroup: { $exists: false } }] },
+            { $or: [{ studentAssigned: { $size: 0 } }, { studentAssigned: { $exists: false } }] },
+            { $or: [{ studentId: { $size: 0 } }, { studentId: { $exists: false } }] },
+          ],
         },
+      ];
+
+      // 3. Match student's groups
+      if (studentGroupIds.length > 0) {
+        studentConditions.push({
+          userGroup: { $in: studentGroupIds },
+          $or: [
+            { studentAssigned: { $size: 0 } },
+            { studentAssigned: { $exists: false } },
+            { studentAssigned: studentObjId },
+            { studentId: { $size: 0 } },
+            { studentId: { $exists: false } },
+            { studentId: studentObjId },
+          ],
+        });
+      }
+
+      // 4. Match student's track
+      if (studentTrackId) {
+        studentConditions.push({
+          userGroupTrack: studentTrackId,
+          $or: [
+            { studentAssigned: { $size: 0 } },
+            { studentAssigned: { $exists: false } },
+            { studentAssigned: studentObjId },
+            { studentId: { $size: 0 } },
+            { studentId: { $exists: false } },
+            { studentId: studentObjId },
+          ],
+        });
+      }
+
+      filterConditions.$or = studentConditions;
+    }
+  } else {
+    // -----------------------------
+    // User Group Filter (Admin/Teacher view)
+    // -----------------------------
+    if (queryData.userGroup) {
+      const groupIds = (
+        Array.isArray(queryData.userGroup)
+          ? queryData.userGroup
+          : String(queryData.userGroup).split(',')
+      )
+        .map((id: string) => id.trim())
+        .filter((id: string) => Types.ObjectId.isValid(id));
+
+      if (!groupIds.length) {
+        return {
+          classes: [],
+          pagination: {
+            total: 0,
+            totalPage: 1,
+            page,
+            limit,
+          },
+        };
+      }
+
+      filterConditions.userGroup = {
+        $in: groupIds.map((id: string) => new Types.ObjectId(id)),
       };
     }
 
-    filterConditions.userGroup = {
-      $in: groupIds.map((id: string) => new Types.ObjectId(id)),
-    };
-  }
+    // -----------------------------
+    // Track Filter (Admin/Teacher view)
+    // -----------------------------
+    if (queryData.userGroupTrack) {
+      const trackId = String(queryData.userGroupTrack).trim();
 
-  // -----------------------------
-  // Track Filter
-  // -----------------------------
-  if (queryData.userGroupTrack) {
-    const trackId = String(queryData.userGroupTrack).trim();
+      if (!Types.ObjectId.isValid(trackId)) {
+        return {
+          classes: [],
+          pagination: {
+            total: 0,
+            totalPage: 1,
+            page,
+            limit,
+          },
+        };
+      }
 
-    if (!Types.ObjectId.isValid(trackId)) {
-      return {
-        classes: [],
-        pagination: {
-          total: 0,
-          totalPage: 1,
-          page,
-          limit,
-        },
-      };
+      filterConditions.userGroupTrack = new Types.ObjectId(trackId);
     }
-
-    filterConditions.userGroupTrack = new Types.ObjectId(trackId);
   }
 
   // -----------------------------
   // Non-admin restrictions
   // -----------------------------
-  if (
-    user?.role !== USER_ROLES.SUPER_ADMIN
-  ) {
+  if (user?.role !== USER_ROLES.SUPER_ADMIN && user?.role !== USER_ROLES.ADMIN) {
     filterConditions.status = true;
   }
   if (
     user?.role !== USER_ROLES.SUPER_ADMIN &&
+    user?.role !== USER_ROLES.ADMIN &&
     filterType !== 'upcoming'
   ) {
     if (!filterConditions.classDate) {
@@ -342,6 +237,7 @@ const getAllClassesFromDB = async (
   delete queryData.filterType;
   delete queryData.userGroup;
   delete queryData.userGroupTrack;
+  delete queryData.studentId;
 
   // -----------------------------
   // Base Query
@@ -393,14 +289,15 @@ const getAllClassesFromDB = async (
       });
     }
 
+    const existingQuery = result.queryModel.getQuery();
     result.queryModel = result.queryModel.find({
-      $or: searchConditions,
+      $and: [existingQuery, { $or: searchConditions }],
     });
   }
 
   const classes = await result.queryModel
     .select(
-      'file title description classDate location virtualClass status published userGroup userGroupTrack studentId teacher slideUrl',
+      'file title description classDate location virtualClass status published userGroup userGroupTrack studentId studentAssigned teacher slideUrl',
     )
     .populate({
       path: 'userGroup',
@@ -409,6 +306,11 @@ const getAllClassesFromDB = async (
     .populate({
       path: 'userGroupTrack',
       select: 'name',
+    })
+    .populate({
+      path: 'studentAssigned',
+      select: 'firstName lastName email profile',
+      model: 'User',
     })
     .populate({
       path: 'studentId',
@@ -429,11 +331,27 @@ const getAllClassesFromDB = async (
     pagination,
   };
 };
+
 const getClassByIdFromDB = async (id: string) => {
   const result = await Class.findById(id)
-    .select('file title description classDate location virtualClass status published userGroup userGroupTrack studentId teacher slideUrl')
+    .select('file title description classDate location virtualClass status published userGroup userGroupTrack studentId studentAssigned teacher slideUrl')
     .populate("userGroup")
-    .populate("userGroupTrack");
+    .populate("userGroupTrack")
+    .populate({
+      path: 'studentAssigned',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    })
+    .populate({
+      path: 'studentId',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    })
+    .populate({
+      path: 'teacher',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    });
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Class doesn't exist!");
   }
@@ -441,7 +359,19 @@ const getClassByIdFromDB = async (id: string) => {
 };
 
 const updateClassToDB = async (id: string, payload: Partial<IClass>) => {
-  const result = await Class.findByIdAndUpdate(id, payload, { new: true });
+  const result = await Class.findByIdAndUpdate(id, payload, { new: true })
+    .populate("userGroup")
+    .populate("userGroupTrack")
+    .populate({
+      path: 'studentAssigned',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    })
+    .populate({
+      path: 'studentId',
+      select: 'firstName lastName email profile',
+      model: 'User',
+    });
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Class doesn't exist!");
   }

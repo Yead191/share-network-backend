@@ -1,6 +1,5 @@
 import { model, Schema } from 'mongoose';
 import { ClassModel, IClass } from './class.interface';
-import { boolean } from 'zod';
 
 const classSchema = new Schema<IClass, ClassModel>(
   {
@@ -9,11 +8,20 @@ const classSchema = new Schema<IClass, ClassModel>(
       ref: 'User',
       required: false,
     },
-    studentId:[{
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: false,
-    }],
+    studentId: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: false,
+      },
+    ],
+    studentAssigned: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: false,
+      },
+    ],
     file: {
       type: String,
       required: false,
@@ -43,7 +51,7 @@ const classSchema = new Schema<IClass, ClassModel>(
       default: false,
     },
     status: {
-      type: Boolean, 
+      type: Boolean,
       default: true,
     },
     published: {
@@ -65,5 +73,10 @@ const classSchema = new Schema<IClass, ClassModel>(
   },
   { timestamps: true }
 );
+
+classSchema.index({ userGroup: 1 });
+classSchema.index({ studentAssigned: 1 });
+classSchema.index({ studentId: 1 });
+classSchema.index({ userGroupTrack: 1 });
 
 export const Class = model<IClass, ClassModel>('Class', classSchema);

@@ -39,7 +39,7 @@ const createAdminToDB = async (payload: any): Promise<IUser> => {
 };
 
 const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
-  payload.verified = true
+  payload.verified = true;
   const createUser = await User.create(payload);
   if (!createUser) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Failed to create user");
@@ -81,7 +81,9 @@ const updateProfileToDB = async (
     throw new ApiError(StatusCodes.BAD_REQUEST, "User not found for update!");
   }
 
-  const result = await User.findOneAndUpdate({ _id: id }, payload, { new: true });
+  const result = await User.findOneAndUpdate({ _id: id }, payload, {
+    new: true,
+  });
 
   return result;
 };
@@ -119,6 +121,15 @@ const updateprofileByIdToDB = async (
     if (!isUserGroupTrackExist) {
       payload.userGroupTrack = null as any;
     }
+  }
+  if (payload.mentorId) {
+    await User.findByIdAndUpdate(
+      payload.mentorId,
+      {
+        $push: { assignedStudents: id },
+      },
+      { new: true },
+    );
   }
   const result = await User.findByIdAndUpdate(id, payload, { new: true });
   return result;

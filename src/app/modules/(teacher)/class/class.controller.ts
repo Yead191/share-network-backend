@@ -5,13 +5,86 @@ import sendResponse from '../../../../shared/sendResponse';
 import { ClassService } from './class.service';
 import { getSingleFilePath } from '../../../../shared/getFilePath';
 
-const createClass = catchAsync(async (req: Request, res: Response) => {
+const normalizeClassPayload = (body: any) => {
+  const data = { ...body };
 
+  // Normalize userGroup
+  let rawGroup = data.userGroup !== undefined ? data.userGroup : data['userGroup[]'];
+  if (typeof rawGroup === 'string') {
+    try {
+      rawGroup = JSON.parse(rawGroup);
+    } catch {
+      rawGroup = rawGroup.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+  if (rawGroup !== undefined) {
+    if (rawGroup === null || rawGroup === 'null' || rawGroup === '') {
+      data.userGroup = [];
+    } else {
+      data.userGroup = Array.isArray(rawGroup) ? rawGroup.filter(Boolean) : [rawGroup];
+    }
+    delete data['userGroup[]'];
+  }
+
+  // Normalize studentAssigned / studentId
+  let rawStudents =
+    data.studentAssigned !== undefined
+      ? data.studentAssigned
+      : data['studentAssigned[]'] !== undefined
+      ? data['studentAssigned[]']
+      : data.studentId !== undefined
+      ? data.studentId
+      : data['studentId[]'];
+
+  if (typeof rawStudents === 'string') {
+    try {
+      rawStudents = JSON.parse(rawStudents);
+    } catch {
+      rawStudents = rawStudents.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+  if (rawStudents !== undefined) {
+    if (rawStudents === null || rawStudents === 'null' || rawStudents === '') {
+      data.studentAssigned = [];
+      data.studentId = [];
+    } else {
+      const studentArr = Array.isArray(rawStudents) ? rawStudents.filter(Boolean) : [rawStudents];
+      data.studentAssigned = studentArr;
+      data.studentId = studentArr;
+    }
+    delete data['studentAssigned[]'];
+    delete data['studentId[]'];
+  }
+
+  if (data.virtualClass !== undefined) {
+    data.virtualClass = data.virtualClass === true || data.virtualClass === 'true';
+  }
+
+  if (data.status !== undefined) {
+    data.status = data.status === true || data.status === 'true';
+  }
+
+  if (data.published !== undefined) {
+    data.published = data.published === true || data.published === 'true';
+  }
+
+  if (!data.userGroupTrack || data.userGroupTrack === 'null' || data.userGroupTrack === 'undefined') {
+    delete data.userGroupTrack;
+  }
+
+  return data;
+};
+
+const createClass = catchAsync(async (req: Request, res: Response) => {
   const file = getSingleFilePath(req.files, 'file');
-  const { ...classData } = req.body;
+  const classData = normalizeClassPayload(req.body);
   const teacherId = req.user?.id;
-  classData.teacher = teacherId;
-  classData.file = file;
+  if (!classData.teacher && teacherId) {
+    classData.teacher = teacherId;
+  }
+  if (file) {
+    classData.file = file;
+  }
 
   const result = await ClassService.createClassToDB(classData);
 
@@ -50,10 +123,14 @@ const getClassById = catchAsync(async (req: Request, res: Response) => {
 
 const updateClass = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { ...updateData } = req.body;
+  const updateData = normalizeClassPayload(req.body);
 
   const file = getSingleFilePath(req.files, 'file');
-  updateData.file = file;
+  if (file) {
+    updateData.file = file;
+  } else if (req.body.file === 'null' || req.body.file === null) {
+    updateData.file = null;
+  }
 
   const { message, result } = await ClassService.updateClassToDB(id, updateData);
 
