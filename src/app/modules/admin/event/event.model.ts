@@ -1,55 +1,58 @@
 import { model, Schema } from "mongoose";
 import { IEvent } from "./event.interface";
 
-
-const eventSchema = new Schema<IEvent>({
+const eventSchema = new Schema<IEvent>(
+  {
     title: {
-        type: String,
-        required: [true, "Event title is required"],
-        trim: true
+      type: String,
+      required: [true, "Event title is required"],
+      trim: true,
     },
     description: {
-        type: String,
-        trim: true
+      type: String,
+      trim: true,
     },
     image: {
-        type: String,
-        trim: false
+      type: String,
+      trim: false,
     },
     status: {
-        type: String,
-        enum: ['active', 'inactive'],
-        default: 'active'
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
     },
     date: {
-        type: Date,
-        required: [true, "Event date is required"]
+      type: Date,
+      required: [true, "Event date is required"],
     },
     location: {
-        type: String,
-        trim: true
+      type: String,
+      trim: true,
     },
     type: {
-        type: String,
-        enum: ['webinar', 'workshop', 'seminar', 'conference', 'all'],
-        required: [true, "Event type is required"]
+      type: String,
+      enum: ["webinar", "workshop", "seminar", "conference", "all", "other"],
+      required: [true, "Event type is required"],
     },
 
-
-    studentAssigned: [{
+    studentAssigned: [
+      {
         type: Schema.Types.ObjectId,
-        ref: 'User'
-    }],
+        ref: "User",
+      },
+    ],
 
     targetTrack: {
-        type: Schema.Types.ObjectId,
-        ref: 'UserGroupTrack'
+      type: Schema.Types.ObjectId,
+      ref: "UserGroupTrack",
     },
     targetGroup: {
-        type: Schema.Types.ObjectId,
-        ref: 'UserGroup'
-    }
-}, {
-    timestamps: true
-})
-export const Event = model<IEvent>('Event', eventSchema);
+      type: Schema.Types.ObjectId,
+      ref: "UserGroup",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+export const Event = model<IEvent>("Event", eventSchema);

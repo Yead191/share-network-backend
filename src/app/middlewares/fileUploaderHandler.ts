@@ -62,52 +62,85 @@ const fileUploadHandler = () => {
         },
     });
 
+    // allowed MIME types
+    const allowedMimeTypes = [
+        // Images
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'image/webp',
+        'image/gif',
+        'image/svg+xml',
+        // Documents & PDFs
+        'application/pdf',
+        'application/msword', // .doc
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/rtf',
+        'text/rtf',
+        // Spreadsheets
+        'application/vnd.ms-excel', // .xls
+        'application/msexcel',
+        'application/x-msexcel',
+        'application/x-ms-excel',
+        'application/x-excel',
+        'application/x-dos_ms_excel',
+        'application/xls',
+        'application/x-xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'text/csv',
+        'application/csv',
+        'text/x-csv',
+        'application/x-csv',
+        // Presentations
+        'application/vnd.ms-powerpoint', // .ppt
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+        // OpenDocument formats
+        'application/vnd.oasis.opendocument.presentation',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'application/vnd.oasis.opendocument.text',
+        // Web & Code
+        'text/html',
+        'text/css',
+        'text/javascript',
+        'application/javascript',
+        'application/x-javascript',
+        'text/plain',
+        'application/typescript',
+        'text/typescript',
+        'application/json',
+        'application/xml',
+        'text/xml',
+        // Archives
+        'application/zip',
+        'application/x-zip-compressed',
+        'application/x-rar-compressed',
+        'application/vnd.rar',
+        'application/x-7z-compressed',
+    ];
+
+    // allowed extensions as a fallback for various client environments
+    const allowedExtensions = [
+        '.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg',
+        '.pdf',
+        '.doc', '.docx',
+        '.xls', '.xlsx', '.csv',
+        '.ppt', '.pptx',
+        '.odt', '.ods', '.odp',
+        '.txt', '.rtf', '.html', '.htm', '.css', '.js', '.ts', '.json', '.xml',
+        '.zip', '.rar', '.7z'
+    ];
+
     //file filter
     const filterFilter = (req: Request, file: any, cb: FileFilterCallback) => {
-
-        // console.log("file handler",file)
         if (file.fieldname === 'image' || file.fieldname === 'submittedfile' || file.fieldname === 'attachment' || file.fieldname === 'file' || file.fieldname === 'cv') {
-            if (
-                file.mimetype === 'image/jpeg' ||
-                file.mimetype === 'image/png' ||
-                file.mimetype === 'image/jpg' ||
-                file.mimetype === 'image/webp' ||
-                file.mimetype === 'application/pdf' ||
-                file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-                file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                file.mimetype === 'application/vnd.oasis.opendocument.presentation' || file.mimetype === 'application/vnd.oasis.opendocument.spreadsheet' || file.mimetype === 'application/vnd.oasis.opendocument.text' ||
-                file.mimetype === 'text/html' ||
-                file.mimetype === 'text/css' ||
-                file.mimetype === 'text/javascript' ||
-                file.mimetype === 'text/plain' ||
-                file.mimetype === 'application/typescript' ||
-                file.mimetype === 'text/typescript'
-
-            ) {
+            const ext = path.extname(file.originalname).toLowerCase();
+            if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
                 cb(null, true);
             } else {
-                cb(new ApiError(StatusCodes.BAD_REQUEST, 'Only .jpeg, .png, .jpg file supported'))
+                cb(new ApiError(StatusCodes.BAD_REQUEST, `Only supported file formats (.jpeg, .png, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .csv, .txt, etc.) are allowed`));
             }
-        }
-        // else if (file.fieldname === 'attachment') {
-        //     if (
-        //         file.mimetype === 'application/pdf' ||
-        //         file.mimetype === 'text/html' ||
-        //         file.mimetype === 'text/css' ||
-        //         file.mimetype === 'application/javascript' ||
-        //         file.mimetype === 'text/javascript' ||
-        //         file.mimetype === 'text/plain' ||
-        //         file.mimetype === 'application/typescript' ||
-        //         file.mimetype === 'text/typescript'
-
-        //     ) {
-        //         cb(null, true);
-        //     } else {
-        //         cb(new ApiError(StatusCodes.BAD_REQUEST, 'Only .pdf, .html, .css, .js, .ts, .txt file supported'))
-        //     }
-        // }
-        else {
-            cb(new ApiError(StatusCodes.BAD_REQUEST, 'This file is not supported'))
+        } else {
+            cb(new ApiError(StatusCodes.BAD_REQUEST, 'This file is not supported'));
         }
     };
 
